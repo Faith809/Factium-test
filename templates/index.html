@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factium AI | Intelligence Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              background: '#050505',
+              surface: '#0a0a0a',
+              primary: '#DC2626',
+              border: '#262626',
+              text: '#ffffff',
+              'text-muted': '#a3a3a3'
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #050505; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; }
+        .glass-panel { background: #0a0a0a; border: 1px solid #262626; }
+        .hidden-section { display: none; }
+        .modal-overlay { background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); }
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Global Status Bar -->
+    <div class="bg-surface border-b border-border p-2 px-4 flex justify-between items-center text-[10px] font-mono tracking-widest uppercase">
+        <div class="flex items-center gap-4">
+            <span class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> 
+                System: <span class="text-white">Online</span>
+            </span>
+            <span class="hidden md:inline">|</span>
+            <span>Active Model: <span id="status-active-model" class="text-primary font-bold">---</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span>Network: <span id="status-network" class="text-green-500">Connected</span></span>
+            <button onclick="showView('models')" class="hover:text-primary transition-colors">[ Manage Keys ]</button>
+        </div>
+    </div>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-surface border-r border-border hidden md:flex flex-col">
+            <div class="p-6 border-b border-border cursor-pointer" onclick="showView('dashboard')">
+                <h1 class="text-2xl font-black tracking-tighter">FACTIUM <span class="text-primary">AI</span></h1>
+            </div>
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto" id="nav-links"></nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 relative overflow-y-auto p-4 md:p-8">
+            <!-- Dashboard -->
+            <div id="view-dashboard" class="space-y-8 max-w-6xl mx-auto">
+                <div class="text-center py-12">
+                    <h1 class="text-6xl font-black tracking-tighter mb-2">OPERATIONAL <span class="text-primary">HUB</span></h1>
+                    <p class="text-text-muted font-mono uppercase text-xs">Intelligence Retrieval & Simulation Suite</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="dashboard-grid"></div>
+            </div>
+
+            <!-- Research -->
+            <div id="view-research" class="hidden-section max-w-4xl mx-auto space-y-6">
+                <div class="flex justify-between items-center border-b border-border pb-4">
+                    <h2 class="text-3xl font-black tracking-tighter">RESEARCH TERMINAL</h2>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-text-muted">ENGINE:</span>
+                        <select id="research-model" onchange="updateActiveModel(this.value)" class="bg-surface border border-border rounded text-xs p-1"></select>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="research-query" placeholder="Enter search subject..." class="flex-1 bg-surface border-2 border-border rounded-xl p-4 outline-none focus:border-primary">
+                    <button onclick="runResearch()" class="bg-primary px-8 rounded-xl font-black hover:bg-red-700 transition">EXECUTE</button>
+                </div>
+                <div id="research-results" class="space-y-4"></div>
+            </div>
+
+            <!-- Fact Checker -->
+            <div id="view-fact-check" class="hidden-section max-w-4xl mx-auto space-y-6">
+                <h2 class="text-3xl font-black border-b border-border pb-4">FACT CHECKER</h2>
+                <textarea id="fact-text" class="w-full h-64 bg-surface border border-border rounded-xl p-4 font-mono text-sm" placeholder="Paste text for bias analysis..."></textarea>
+                <button onclick="runFactCheck()" class="w-full bg-primary py-4 font-black rounded-xl">RUN DIAGNOSTICS</button>
+                <div id="fact-results"></div>
+            </div>
+
+            <!-- Policy Simulator -->
+            <div id="view-policy" class="hidden-section max-w-4xl mx-auto space-y-6">
+                <h2 class="text-3xl font-black border-b border-border pb-4">POLICY SIMULATOR</h2>
+                <div id="policy-active" class="space-y-4">
+                    <input type="text" id="policy-input" placeholder="Enter Policy/Law description..." class="w-full bg-surface border border-border rounded-xl p-4">
+                    <button onclick="runPolicySim()" class="w-full bg-primary py-4 font-black rounded-xl">SIMULATE IMPACT</button>
+                    <div id="policy-results"></div>
+                </div>
+            </div>
+
+            <!-- Neural Armory (Enhanced) -->
+            <div id="view-models" class="hidden-section max-w-4xl mx-auto space-y-8">
+                <h2 class="text-4xl font-black tracking-tighter border-b border-border pb-4">NEURAL ARMORY</h2>
+                
+                <!-- API VAULT -->
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center gap-3 text-primary">
+                        <span class="w-2 h-2 bg-primary rounded-full"></span>
+                        <h3 class="font-bold uppercase tracking-widest text-sm">Key Vault (Internet Access)</h3>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-text-muted">GOOGLE GEMINI API (Primary)</label>
+                            <input id="api-key-google" type="password" class="w-full p-3 bg-surface border border-border rounded-lg" placeholder="AIzaSy...">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-text-muted">OPENAI KEY (Optional)</label>
+                            <input id="api-key-openai" type="password" class="w-full p-3 bg-surface border border-border rounded-lg" placeholder="sk-...">
+                        </div>
+                    </div>
+                    <button onclick="saveAllKeys()" class="bg-primary px-6 py-2 rounded font-bold text-xs">UPDATE VAULT</button>
+                </div>
+
+                <!-- INTEGRATION FOUNDRY -->
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center gap-3 text-green-500">
+                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <h3 class="font-bold uppercase tracking-widest text-sm">Integration Foundry (Add Custom Model)</h3>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <input id="cust-name" placeholder="Model Display Name (e.g. Crypto Oracle)" class="p-3 bg-surface border border-border rounded-lg">
+                        <input id="cust-id" placeholder="Model ID (e.g. gpt-custom-1)" class="p-3 bg-surface border border-border rounded-lg">
+                    </div>
+                    <textarea id="cust-prompt" placeholder="Define the AI persona (System Prompt)..." class="w-full h-32 p-3 bg-surface border border-border rounded-lg font-mono text-xs"></textarea>
+                    <button onclick="createCustomModel()" class="bg-green-600 px-6 py-2 rounded font-bold text-xs">FORGE INTEGRATION</button>
+                </div>
+
+                <!-- MODEL LIST -->
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold text-text-muted uppercase">Currently Integrated</h3>
+                    <div id="integrated-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- Profile & About -->
+            <div id="view-profile" class="hidden-section max-w-2xl mx-auto space-y-6">
+                <h2 class="text-3xl font-black">USER MATRIX</h2>
+                <div class="glass-panel p-8 rounded-2xl space-y-4">
+                    <input id="prof-name" placeholder="Alias" class="w-full p-4 bg-surface border border-border rounded-xl">
+                    <input id="prof-loc" placeholder="Location (for impact mapping)" class="w-full p-4 bg-surface border border-border rounded-xl">
+                    <select id="prof-income" class="w-full p-4 bg-surface border border-border rounded-xl">
+                        <option value="0-30k">Economic Tier: Low</option>
+                        <option value="30k-100k">Economic Tier: Mid</option>
+                        <option value="100k+">Economic Tier: High</option>
+                    </select>
+                    <button onclick="saveProfile()" class="w-full bg-primary py-4 font-black rounded-xl">UPDATE MATRIX</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- API KEY MODAL (POP-UP) -->
+    <div id="modal-key-required" class="fixed inset-0 z-[100] modal-overlay flex items-center justify-center hidden">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full border-2 border-primary shadow-2xl space-y-6">
+            <div class="text-center">
+                <div class="inline-block p-4 bg-primary/20 rounded-full text-primary mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </div>
+                <h2 class="text-2xl font-black tracking-tight">API KEY REQUIRED</h2>
+                <p class="text-text-muted text-sm mt-2">The selected model (<span id="modal-target-model" class="text-white font-bold"></span>) requires a valid API key to establish a secure connection.</p>
+            </div>
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-text-muted uppercase">Enter Google Gemini API Key</label>
+                <input id="modal-key-input" type="password" class="w-full p-4 bg-surface border border-primary/50 rounded-xl focus:border-primary outline-none" placeholder="AIzaSy...">
+                <p class="text-[9px] text-text-muted">This app uses Google Gemini as its primary intelligence engine. Get a key at <a href="https://aistudio.google.com/" target="_blank" class="text-primary underline">ai.google.dev</a>.</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="hideModal('modal-key-required')" class="flex-1 py-3 text-xs font-bold text-text-muted hover:text-white transition">CANCEL</button>
+                <button onclick="saveKeyFromModal()" class="flex-1 py-3 bg-primary rounded-xl text-xs font-black">VALIDATE & CONNECT</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

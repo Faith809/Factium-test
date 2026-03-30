@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Factium AI Distribution Guide</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 20px; background: #02040A; color: #eee; }
+        h1, h2 { color: #DC2626; }
+        code { background: #111; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #22D3EE; }
+        .step { border: 1px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 20px; background: #0D121E; }
+        .btn { display: inline-block; padding: 10px 20px; background: #DC2626; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Factium AI Distribution Hub</h1>
+    <p>Follow these steps to package this app for any device for <strong>FREE</strong> without needing Node.js or admin rights.</p>
+
+    <div class="step">
+        <h2>1. Hosting the PWA</h2>
+        <p>Your current AI Studio environment provides a live URL. Copy that URL (e.g., <code>https://factium-ai.aistudio.com</code>). All converters below will use this link.</p>
+    </div>
+
+    <div class="step">
+        <h2>2. Windows .EXE (PWA2EXE)</h2>
+        <ol>
+            <li>Go to <a href="https://www.pwa2exe.com" target="_blank" class="btn">PWA2EXE.com</a></li>
+            <li>Paste your app URL.</li>
+            <li>Select "Windows".</li>
+            <li>Click "Generate" and download the setup.exe.</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h2>3. Android .APK (PWA2APK)</h2>
+        <ol>
+            <li>Go to <a href="https://pwa2apk.com" target="_blank" class="btn">PWA2APK.com</a></li>
+            <li>Enter your URL.</li>
+            <li>Fill in "Factium AI" as the app name.</li>
+            <li>Wait for the build to finish and download the .apk to your phone.</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h2>4. macOS / iOS</h2>
+        <p><strong>iOS:</strong> Open the URL in Safari on your iPhone, tap "Share", then "Add to Home Screen". It will work exactly like an installed app.</p>
+        <p><strong>macOS:</strong> Open the URL in Chrome, click the "Install" icon in the address bar (the square with an arrow).</p>
+    </div>
+
+    <div class="step">
+        <h2>5. Offline Use</h2>
+        <p>Once you open the app for the first time on any device, the <strong>Service Worker</strong> will automatically cache all files. You can now close your internet and it will still open!</p>
+    </div>
+</body>
+</html>

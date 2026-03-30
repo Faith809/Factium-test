@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factium AI Desktop</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div id="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">FACTIUM <span>AI</span></div>
+            <nav>
+                <button onclick="showSection('dashboard')" class="nav-item active">Overview</button>
+                <button onclick="showSection('research')" class="nav-item">Research</button>
+                <button onclick="showSection('armory')" class="nav-item">Neural Armory</button>
+                <button onclick="toggleTheme()" id="theme-toggle" class="nav-item">Switch Theme</button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <!-- Dashboard -->
+            <section id="sec-dashboard" class="view-section">
+                <h1>Welcome to the <span>Truth Layer</span></h1>
+                <div class="stats-grid">
+                    <div class="stat-card"><h3>Network</h3><p id="net-status">Online</p></div>
+                    <div class="stat-card"><h3>Active Engine</h3><p id="active-model">Gemini 3 Flash</p></div>
+                </div>
+            </section>
+
+            <!-- Research -->
+            <section id="sec-research" class="view-section hidden">
+                <h2>Intelligence Terminal</h2>
+                <div class="input-group">
+                    <input type="text" id="research-query" placeholder="Search global archives...">
+                    <button onclick="executeResearch()">EXECUTE</button>
+                </div>
+                <div id="results" class="results-area"></div>
+            </section>
+
+            <!-- Armory -->
+            <section id="sec-armory" class="view-section hidden">
+                <h2>Neural Armory</h2>
+                <div class="card">
+                    <h3>Forge Custom Integration</h3>
+                    <input type="text" id="m-name" placeholder="Model Name">
+                    <input type="text" id="m-id" placeholder="Model ID (e.g. gpt-4)">
+                    <textarea id="m-prompt" placeholder="System Persona Instructions..."></textarea>
+                    <button onclick="forgeModel()">Forge Model</button>
+                </div>
+                <div id="custom-list" class="model-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- API Modal -->
+    <div id="api-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>API Key Required</h2>
+            <p>A secure connection to Gemini requires a valid Google AI API Key.</p>
+            <input type="password" id="api-key-input" placeholder="Paste AIza... key here">
+            <div class="modal-actions">
+                <button onclick="saveApiKey()">Save & Connect</button>
+                <a href="https://aistudio.google.com/" target="_blank">Get a Key</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Fira+Code&display=swap');
+@import "tailwindcss";
+@import "driver.js/dist/driver.css";
+
+/* Dynamic Appearance Engine Variables */
+:root {
+  --app-accent: #f59e0b;
+  --app-accent-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  --app-bg: #F8FAFC;
+  --app-surface: rgba(255, 255, 255, 0.8);
+  --app-text: #0F172A;
+  --app-text-muted: #475569;
+  --app-border: rgba(0, 0, 0, 0.1);
+
+  /* Tailwind Mappings */
+  --background: var(--app-bg);
+  --surface: var(--app-surface);
+  --primary: var(--app-accent);
+  --secondary: #0891B2;
+  --accent: var(--app-accent);
+  --text: var(--app-text);
+  --text-muted: var(--app-text-muted);
+  --border: var(--app-border);
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+
+  --background-image-sunset-gradient: var(--app-accent-gradient);
+  --background-image-sunset-soft: var(--app-accent-gradient);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+  overflow-x: hidden;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-surface border border-border backdrop-blur-[20px] shadow-2xl;
+  }
+
+  .bg-sunset-btn {
+    background: var(--app-accent-gradient);
+    color: var(--app-accent-text, #000);
+  }
+
+  .text-sunset-gradient {
+    background: var(--app-accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-amber-500/20 rounded-full hover:bg-amber-500/40 transition-colors;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-progress {
+  animation: progress 2s infinite linear;
+}
+
+.spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out forwards;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
+}

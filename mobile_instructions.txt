@@ -1,0 +1,15 @@
+HOW TO BUILD FOR ANDROID (.apk)
+
+1. You need a Linux environment (or WSL on Windows).
+2. Install Buildozer: pip install buildozer
+3. Run: buildozer init
+4. Edit buildozer.spec:
+   - title = Factium AI
+   - package.name = factium
+   - requirements = python3,flask,google-generativeai,requests
+   - source.include_exts = py,png,jpg,kv,atlas,html,css,js
+5. Create a file named `main.py` (for mobile) that starts Flask in a thread and opens a WebView.
+
+Note: Since this app uses a local Flask server, the easiest mobile approach is to deploy the Flask app to a cloud server (Render/Heroku) and access it via Chrome on mobile.
+
+If you strictly need an offline APK, use Kivy to load the local `templates/index.html` file directly, bypassing Flask, but you will lose the Python-based Gemini logic unless you reimplement it in Kivy.
