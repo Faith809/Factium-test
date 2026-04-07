@@ -324,7 +324,22 @@ const enSet = generateSet({
       verification: "Reference Sources (15)" 
     } 
   },
-  finance: { title: "MONEY TRACKER", subtitle: "See who is paying for the big events.", placeholder: "Enter a person or event...", btn: "TRACK MONEY", briefTitle: "Simple Summary", tabs: { donors: "Top Givers", social: "Online Chat", news: "Latest News", analysis: "Analysis", verification: "Reference Sources" }, sourceVerify: "Check Proof", noData: "Nothing found right now." },
+  finance: { 
+    title: "MONEY TRACKER", 
+    subtitle: "See who is paying for the big events.", 
+    placeholder: "Enter a person or event...", 
+    btn: "TRACK MONEY", 
+    briefTitle: "Simple Summary", 
+    tabs: { 
+      donors: "Top Givers & Donors", 
+      analysis: "Analysis & Explanation (3 Paragraphs)", 
+      news: "Latest News (10)", 
+      social: "Online Chat (15)", 
+      verification: "Reference Sources (15)" 
+    }, 
+    sourceVerify: "Check Proof", 
+    noData: "Nothing found right now." 
+  },
   models: { title: "THE TOOL BOX", subtitle: "Manage your keys and pick your favorite helpers.", tabs: { vault: "Secure Keys", marketplace: "More Tools", custom: "Make Your Own" }, vaultHeader: "Connect to the Web", vaultDesc: "Add your keys to use different smart tools.", geminiStatus: "Gemini is already active and ready.", saveBtn: "Save My Keys", purchase: "Get Access", licenseAcquired: "Ready to Use", forgeTitle: "Create a Helper", forgeBtn: "Save Helper", identityLabel: "Helper Name", personaLabel: "How they should act", activeModelsTitle: "My Current Helpers" },
   profile: { title: "MY DETAILS", subtitle: "Tell us a bit about you for better results.", autofill: "Fill from Device", restored: "Done", labels: { name: "Name or Nickname", location: "Where you live", income: "Money you earn", family: "Family size", occupation: "What you do", political: "General views" }, saveBtn: "SAVE MY INFO", savedMsg: "Your info is safe and saved." },
   common: { back: "BACK", home: "HOME", verify: "Check Source", viewArchive: "View More", accessPulse: "Read More", unveil: "Open", discoveryChambers: "Rooms" },

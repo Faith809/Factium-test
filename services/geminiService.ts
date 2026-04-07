@@ -161,10 +161,16 @@ export const simulatePolicy = async (policy: string, profile: UserProfile, model
 export const trackCampaignFinance = async (query: string, modelId: AIModelId, attachments?: any[]): Promise<FinanceTrackerResponse> => {
   const lang = getActiveLanguage();
   const tone = getToneInstruction(lang);
-  const systemInstruction = "You are an honest tracker who shows where money flows. MANDATORY: Exactly 3 paragraphs for forensicExplanation, 10 news items, 15 social chat results, and 15 reference sites." + tone;
+  const systemInstruction = `You are an honest tracker who shows where money flows. 
+  MANDATORY REQUIREMENTS for the JSON response:
+  1. 'forensicExplanation': Exactly 3 detailed and simple paragraphs of explanation of the results, why it exists, and its information of discussion.
+  2. 'newsFeed': Exactly 10 items. Each MUST include news and trends concerning the information in discussion, with a valid clickable 'link' to a different source for each.
+  3. 'socialMediaFeed': Exactly 15 items. Each MUST include online discourse, predictions, and controversies concerning the information in discussion, with a valid clickable 'link' to a different source for each (at least 10 unique sources across the 15 items).
+  4. 'referenceSources': Exactly 15 items. Each MUST be a clickable 'url' to a different external site from which the results are gotten or referenced.
+  ` + tone;
 
   try {
-    const response = await callAI(`Find the money flow and discourse for: "${query}". Provide 15 social posts, 10 news reports, and 15 source references.`, {
+    const response = await callAI(`Find the money flow and discourse for: "${query}". Provide 3 paragraphs of detailed analysis, 10 news reports with links, 15 social discourse items with links, and 15 external reference sites.`, {
       json: true,
       modelId: modelId,
       attachments: attachments,

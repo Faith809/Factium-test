@@ -36,7 +36,7 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
     try {
       const data = await trackCampaignFinance(query, selectedModel, attachments);
       setResult(data);
-      setActiveTab('donors');
+      setActiveTab('analysis');
       
       // Save to DB
       await saveSyncData({
@@ -91,28 +91,28 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
                 {t.finance.tabs.donors}
               </button>
               <button 
-                onClick={() => setActiveTab('social')}
-                className={`px-6 py-3 text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'social' ? 'text-primary border-b-2 border-primary bg-surface' : 'text-text-muted hover:text-text'}`}
-              >
-                {t.finance.tabs.social} ({result.socialMediaFeed.length})
-              </button>
-              <button 
-                onClick={() => setActiveTab('news')}
-                className={`px-6 py-3 text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'news' ? 'text-primary border-b-2 border-primary bg-surface' : 'text-text-muted hover:text-text'}`}
-              >
-                {t.finance.tabs.news} ({result.newsFeed.length})
-              </button>
-              <button 
                 onClick={() => setActiveTab('analysis')}
                 className={`px-6 py-3 text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'analysis' ? 'text-primary border-b-2 border-primary bg-surface' : 'text-text-muted hover:text-text'}`}
               >
                 {t.finance.tabs.analysis}
               </button>
               <button 
+                onClick={() => setActiveTab('news')}
+                className={`px-6 py-3 text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'news' ? 'text-primary border-b-2 border-primary bg-surface' : 'text-text-muted hover:text-text'}`}
+              >
+                {t.finance.tabs.news}
+              </button>
+              <button 
+                onClick={() => setActiveTab('social')}
+                className={`px-6 py-3 text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'social' ? 'text-primary border-b-2 border-primary bg-surface' : 'text-text-muted hover:text-text'}`}
+              >
+                {t.finance.tabs.social}
+              </button>
+              <button 
                 onClick={() => setActiveTab('verification')}
                 className={`px-6 py-3 text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'verification' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-muted hover:text-text'}`}
               >
-                {t.finance.tabs.verification} ({result.referenceSources.length})
+                {t.finance.tabs.verification}
               </button>
           </div>
 
@@ -130,8 +130,8 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
                               </div>
                               <p className="text-sm text-text-muted mb-2"><span className="text-text-muted font-bold">Affiliation:</span> {donor.affiliation}</p>
                               <p className="text-sm text-red-400/80 mb-3"><span className="font-bold">Controversy:</span> {donor.controversy}</p>
-                              <a href={donor.sourceLink} target="_blank" rel="noreferrer" className="text-xs text-primary hover:opacity-80 uppercase font-bold flex items-center gap-1">
-                                  {t.finance.sourceVerify} →
+                              <a href={donor.sourceLink} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:opacity-80 uppercase font-black tracking-widest flex items-center gap-1">
+                                  Open Source Site →
                               </a>
                           </div>
                       )) : (
@@ -142,7 +142,7 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
                   </div>
               )}
 
-              {/* SOCIAL WIRE TAB - 15 RESULTS */}
+              {/* ONLINE CHAT TAB - 15 RESULTS */}
               {activeTab === 'social' && (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
                       {result.socialMediaFeed.map((item, idx) => (
@@ -161,7 +161,7 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
                                 <h5 className="text-base font-bold text-text italic mb-4 group-hover:text-primary transition-colors leading-snug">"{item.headline}"</h5>
                                 <p className="text-xs text-text-muted italic border-l-2 border-primary/20 pl-4">{item.context}</p>
                               </div>
-                              <div className="mt-6 text-[9px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Access Discourse →</div>
+                              <div className="mt-6 text-[9px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Open Source Site →</div>
                           </a>
                       ))}
                   </div>
@@ -183,8 +183,8 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
                                    <h4 className="font-bold text-text text-lg leading-tight group-hover:text-primary transition-colors">{news.headline}</h4>
                                    <span className="text-[10px] text-primary font-bold uppercase tracking-wider">{news.source}</span>
                                </div>
-                               <div className="p-3 bg-surface border border-border rounded-xl group-hover:border-primary transition-all">
-                                  <IconSearch className="w-4 h-4 text-text-muted group-hover:text-primary" />
+               <div className="p-3 bg-surface border border-border rounded-xl group-hover:border-primary transition-all">
+                                  <span className="text-[9px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Open Source Site →</span>
                                </div>
                            </a>
                        ))}
@@ -195,7 +195,7 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
               {activeTab === 'analysis' && (
                   <div className="glass-card p-12 rounded-[3.5rem] border-l-[10px] border-primary bg-surface/40 shadow-2xl animate-slide-up">
                       <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.5em] mb-10 pb-6 border-b border-primary/10 flex items-center gap-3">
-                        <IconInfo className="w-5 h-5" /> Detailed Analysis
+                        <IconInfo className="w-5 h-5" /> Analysis & Explanation
                       </h4>
                       <div className="markdown-body text-xl leading-[1.8] font-serif italic">
                         <ReactMarkdown>{result.forensicExplanation}</ReactMarkdown>
@@ -217,7 +217,7 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
                         <span className="text-primary font-black opacity-30 group-hover:opacity-100 transition-opacity font-mono">REF {(i+1).toString().padStart(2, '0')}</span>
                         <div className="flex flex-col gap-3 overflow-hidden">
                           <p className="text-text italic font-serif leading-snug group-hover:text-white transition-colors line-clamp-2">{ref.title}</p>
-                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted group-hover:text-primary transition-colors truncate">Open Evidence Site →</span>
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted group-hover:text-primary transition-colors truncate">Open Source Site →</span>
                         </div>
                       </a>
                     ))}
