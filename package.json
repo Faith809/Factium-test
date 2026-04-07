@@ -50,6 +50,7 @@
     },
     "files": [
       "dist/**/*",
+      "backend/**/*",
       "main.js",
       "preload.js",
       "package.json"

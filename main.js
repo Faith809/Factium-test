@@ -2,13 +2,36 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { fork } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow;
+let backendProcess;
+
+function startBackend() {
+  const backendPath = path.join(__dirname, 'backend', 'server.js');
+  backendProcess = fork(backendPath, [], {
+    stdio: 'inherit',
+    env: { ...process.env, NODE_ENV: app.isPackaged ? 'production' : 'development' }
+  });
+
+  backendProcess.on('error', (err) => {
+    console.error('Failed to start backend:', err);
+  });
+
+  backendProcess.on('exit', (code) => {
+    if (code !== 0) {
+      console.error(`Backend exited with code ${code}`);
+    }
+  });
+}
 
 async function createWindow() {
+  // Start backend server
+  startBackend();
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -32,8 +55,17 @@ async function createWindow() {
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
+  if (backendProcess) {
+    backendProcess.kill();
+  }
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('quit', () => {
+  if (backendProcess) {
+    backendProcess.kill();
   }
 });
 
