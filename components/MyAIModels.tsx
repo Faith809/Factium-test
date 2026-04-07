@@ -167,13 +167,10 @@ const MyAIModels: React.FC<MyAIModelsProps> = ({ onBack, onHome, onGuide, langua
     };
 
     const handlePurchase = (model: CustomAIModel) => {
-        const confirm = window.confirm(`Purchase license for ${model.name}? (Simulated Transaction)`);
-        if (confirm) {
-            const updatedUnlocked = [...unlockedIds, model.id];
-            setUnlockedIds(updatedUnlocked);
-            localStorage.setItem('factium_unlocked_models', JSON.stringify(updatedUnlocked));
-            alert("License Acquired. Model is now available in all terminals.");
-        }
+        const updatedUnlocked = [...unlockedIds, model.id];
+        setUnlockedIds(updatedUnlocked);
+        localStorage.setItem('factium_unlocked_models', JSON.stringify(updatedUnlocked));
+        alert("License Acquired. Model is now available in all terminals.");
     };
 
     return (

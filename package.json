@@ -1,14 +1,19 @@
 {
   "name": "lates-factium-ai-v3",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Factium AI - Advanced Fact-Checking and Bias Analysis",
+  "author": "Factium AI Team",
+  "main": "main.js",
   "type": "module",
   "packageManager": "npm@10.8.1",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
     "@google/genai": "1.30.0",
@@ -31,7 +36,33 @@
     "@types/react-dom": "18.2.0",
     "@vitejs/plugin-react": "4.3.4",
     "typescript": "5.8.2",
-    "vite": "6.2.0"
+    "vite": "6.2.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^25.0.0",
+    "concurrently": "^8.2.2",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "productName": "Factium AI",
+    "appId": "com.factium.ai",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "overrides": {
     "react": "18.2.0",

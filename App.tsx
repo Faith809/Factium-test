@@ -40,7 +40,14 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const vault = localStorage.getItem('factium_vault');
-    if (!vault) setNeedsSetup(true);
+    if (!vault) {
+      setNeedsSetup(true);
+    } else {
+      const parsed = JSON.parse(vault);
+      const activeProvider = parsed.activeProvider;
+      const key = parsed.keys[activeProvider];
+      if (!key) setNeedsSetup(true);
+    }
 
     const saved = localStorage.getItem('factium_profile');
     if (saved) setUserProfile(JSON.parse(saved));

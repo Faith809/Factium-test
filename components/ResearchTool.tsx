@@ -32,6 +32,13 @@ const ResearchTool: React.FC<{onBack: () => void; onHome: () => void; onGuide: (
     };
   }, []);
 
+  // Sync active module when mode changes
+  useEffect(() => {
+    if (mode === ResearchMode.RESTRICTED && activeModule === 'scandals') {
+      setActiveModule(null);
+    }
+  }, [mode]);
+
   const handleSearch = async (query: string, attachments: any[]) => {
     if (!query.trim() && attachments.length === 0) return;
     setLoading(true);
@@ -122,14 +129,15 @@ const ResearchTool: React.FC<{onBack: () => void; onHome: () => void; onGuide: (
           </div>
 
           <div className="flex flex-wrap justify-center gap-4">
-            <button 
-              onClick={() => setActiveModule('scandals')} 
-              disabled={mode === ResearchMode.RESTRICTED} 
-              className={`px-8 py-4 rounded-2xl border-2 transition-all duration-300 flex items-center gap-3 hover:scale-105 ${activeModule === 'scandals' ? 'bg-primary border-primary text-white shadow-lg' : 'bg-surface border-border text-text-muted'} ${mode === ResearchMode.RESTRICTED && 'opacity-20 cursor-not-allowed grayscale'}`}
-            >
-              <IconShield className="w-5 h-5" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{t.research.controversies} ({result.scandals.length})</span>
-            </button>
+            {mode === ResearchMode.UNRESTRICTED && (
+              <button 
+                onClick={() => setActiveModule('scandals')} 
+                className={`px-8 py-4 rounded-2xl border-2 transition-all duration-300 flex items-center gap-3 hover:scale-105 ${activeModule === 'scandals' ? 'bg-primary border-primary text-white shadow-lg' : 'bg-surface border-border text-text-muted'}`}
+              >
+                <IconShield className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-widest">{t.research.controversies} ({result.scandals.length})</span>
+              </button>
+            )}
             <button 
               onClick={() => setActiveModule('details')} 
               className={`px-8 py-4 rounded-2xl border-2 transition-all duration-300 flex items-center gap-3 hover:scale-105 ${activeModule === 'details' ? 'bg-primary border-primary text-white shadow-lg' : 'bg-surface border-border text-text-muted'}`}

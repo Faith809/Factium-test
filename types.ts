@@ -144,3 +144,13 @@ export interface AppearanceSettings {
   background: string;
   isDark: boolean;
 }
+
+declare global {
+  interface Window {
+    BACKEND_PORT?: number;
+    electronAPI?: {
+      getBackendPort: () => Promise<number | undefined>;
+      setApiKey: (apiKey: string) => Promise<{ status: string; message: string }>;
+    };
+  }
+}

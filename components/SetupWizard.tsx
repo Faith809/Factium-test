@@ -50,7 +50,7 @@ const SetupWizard: React.FC<Props> = ({ onComplete, language, setLanguage }) => 
     // Simulate verification
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    if (selected === 'google' || (key && key.length > 10) || (selected === 'custom' && key) || (selected.toString().startsWith('custom-') && key)) {
+    if (key && key.length > 10) {
       setVerificationStatus('success');
     } else {
       setVerificationStatus('error');
@@ -88,7 +88,7 @@ const SetupWizard: React.FC<Props> = ({ onComplete, language, setLanguage }) => 
       return;
     }
 
-    if (!key && selected !== 'google') return alert("Authentication Key required for activation.");
+    if (!key) return alert("Authentication Key required for activation.");
     
     const config: ProviderConfig = {
       activeProvider: selected as any,

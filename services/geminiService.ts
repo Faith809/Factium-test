@@ -1,6 +1,6 @@
 
 import { Type } from "@google/genai";
-import { UserProfile, AIModelId, BiasMetric, PolicyImpact, FinanceTrackerResponse, LanguageCode } from "../types";
+import { UserProfile, AIModelId, BiasMetric, PolicyImpact, FinanceTrackerResponse, LanguageCode, ResearchMode } from "../types";
 import { languageNames } from "./i18n";
 import { callAI } from "./multiProviderService";
 
@@ -15,56 +15,22 @@ const getToneInstruction = (lang: LanguageCode) => {
 export const analyzeBias = async (text: string, modelId: AIModelId, mode: string, attachments?: any[]): Promise<BiasMetric> => {
   const lang = getActiveLanguage();
   const tone = getToneInstruction(lang);
+  const isUnrestricted = mode === ResearchMode.UNRESTRICTED;
   
-  const biasSchema = {
-    type: Type.OBJECT,
-    properties: {
-      score: { type: Type.NUMBER, description: "Bias score (0-100)." },
-      label: { type: Type.STRING, description: "A simple name for the bias level." },
-      reasoning: { type: Type.STRING, description: "A short, easy explanation of the bias." },
-      omittedPoints: { 
-        type: Type.ARRAY, 
-        items: { type: Type.STRING },
-        description: "Things the writer forgot to mention." 
-      },
-      forensicExplanation: { type: Type.STRING, description: "Exactly 3 easy paragraphs explaining why this topic exists and how we analyzed it." },
-      findingsSources: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            description: { type: Type.STRING, description: "News headline or controversy summary." },
-            url: { type: Type.STRING, description: "A valid clickable link." }
-          },
-          required: ["description", "url"]
-        },
-        description: "Exactly 15 items: News, Controversies, and Conspiracies related to the topic."
-      },
-      referenceSources: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING, description: "Name of the source site." },
-            url: { type: Type.STRING, description: "Direct link to the external source." }
-          },
-          required: ["title", "url"]
-        },
-        description: "Exactly 15 different reference sources used to extract information."
-      }
-    },
-    required: ["score", "label", "reasoning", "omittedPoints", "forensicExplanation", "findingsSources", "referenceSources"]
-  };
-
-  const systemInstruction = `You are a helpful assistant who checks facts. 
-  MANDATORY: 
-  1. Your 'forensicExplanation' MUST be exactly 3 paragraphs long. Explain the topic simply.
-  2. Your 'findingsSources' MUST contain exactly 15 items consisting of news, controversies, and conspiracies.
-  3. Your 'referenceSources' MUST contain exactly 15 items which are the external sites where data was extracted from.
+  const systemInstruction = `You are a helpful assistant who checks facts and analyzes bias. 
+  MANDATORY REQUIREMENTS: 
+  1. 'score': Provide a functional and accurate bias score (0-100).
+  2. 'label': A simple name for the bias level.
+  3. 'reasoning': Provide exactly 2 paragraphs of explanation and summary of the results.
+  4. 'forensicExplanation': Provide exactly 3 paragraphs of detailed and simple explanation of the results, why it exists, and its information of discussion.
+  5. 'findingsSources': Provide exactly 15 items. ${isUnrestricted ? 'Since this is DEEP LOOK (UNRESTRICTED) mode, provide at least 10 items that are unfiltered, secretive, and controversial news/gist sources (both safe and unsafe) where controversial information is extracted from.' : 'Provide news, controversies, and conspiracies related to the topic.'} Each item MUST have a "description" and a valid clickable "url".
+  6. 'referenceSources': Provide exactly 15 different sources of the latest and verified or trusted news and reference sources concerning the discussion. Each item MUST have a "title" and a valid clickable "url".
+  7. 'omittedPoints': List things the writer forgot to mention.
+  
   Use simple and relaxing language.` + tone;
 
   try {
-    const response = await callAI(`Look at this text and tell me what's real and what's biased: "${text}"`, {
+    const response = await callAI(`Analyze this text for bias and facts: "${text}". Mode: ${isUnrestricted ? 'DEEP LOOK (UNRESTRICTED)' : 'QUICK CHECK (RESTRICTED)'}`, {
       json: true,
       modelId: modelId,
       attachments: attachments,
@@ -76,7 +42,6 @@ export const analyzeBias = async (text: string, modelId: AIModelId, mode: string
     
     const parsed = JSON.parse(textOutput);
 
-    // Ensure we have exactly 15 for both source arrays
     const ensureCount = (arr: any[], count: number, filler: (i: number) => any) => {
         const list = Array.isArray(arr) ? arr : [];
         while (list.length < count) list.push(filler(list.length));
@@ -84,24 +49,25 @@ export const analyzeBias = async (text: string, modelId: AIModelId, mode: string
     };
 
     parsed.findingsSources = ensureCount(parsed.findingsSources || [], 15, (i) => ({
-        description: "Finding more details for source #" + (i+1),
-        url: "https://www.google.com/search?q=" + encodeURIComponent(text.substring(0, 50) + " controversy")
+        description: isUnrestricted ? "Unfiltered controversial source node #" + (i+1) : "Finding more details for source #" + (i+1),
+        url: isUnrestricted ? "https://www.google.com/search?q=" + encodeURIComponent(text.substring(0, 50) + " leak controversy") : "https://www.google.com/search?q=" + encodeURIComponent(text.substring(0, 50) + " controversy")
     }));
 
     parsed.referenceSources = ensureCount(parsed.referenceSources || [], 15, (i) => ({
-        title: "Information Archive " + (i+1),
-        url: "https://www.google.com/search?q=" + encodeURIComponent(text.substring(0, 50) + " reference")
+        title: "Verified Reference " + (i+1),
+        url: "https://www.google.com/search?q=" + encodeURIComponent(text.substring(0, 50) + " official reference")
     }));
 
     return parsed as BiasMetric;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Bias Analysis Failed:", error);
+    const isMissingKey = error.message?.includes("MISSING_KEY");
     return {
       score: 50,
-      label: "Check Failed",
-      reasoning: "We couldn't read the story correctly right now. Please try again later.",
+      label: isMissingKey ? "Missing API Key" : "Check Failed",
+      reasoning: isMissingKey ? "Please enter your API key in the recalibrate settings." : "We couldn't read the story correctly right now. Please try again later.",
       omittedPoints: ["Connection check", "Please refresh"],
-      forensicExplanation: "The tool had a small problem finding the answer.\n\nWe are working to fix it as fast as we can.\n\nPlease come back in a few minutes.",
+      forensicExplanation: "The tool had a small problem finding the answer.\n\nThis usually happens if your API key is missing or invalid.\n\nPlease check your settings and try again.",
       findingsSources: [],
       referenceSources: [],
       controversies: []
@@ -113,63 +79,6 @@ export const simulatePolicy = async (policy: string, profile: UserProfile, model
   const lang = getActiveLanguage();
   const tone = getToneInstruction(lang);
   
-  const policySchema = {
-    type: Type.OBJECT,
-    properties: {
-      economicScore: { type: Type.NUMBER },
-      socialScore: { type: Type.NUMBER },
-      personalImpactSummary: { type: Type.STRING, description: "A simple note about the general impact." },
-      forensicExplanation: { type: Type.STRING, description: "Exactly 3 detailed paragraphs explaining the results, purpose, and context based on the user's profile." },
-      newsPredictions: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            headline: { type: Type.STRING },
-            trend: { type: Type.STRING },
-            url: { type: Type.STRING }
-          }
-        },
-        description: "Exactly 10 news, predictions, and trends relevant to the user's profile."
-      },
-      socialDiscourse: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            platform: { type: Type.STRING },
-            controversy: { type: Type.STRING },
-            url: { type: Type.STRING }
-          }
-        },
-        description: "Exactly 10 items of online discourse and controversies relevant to the user's profile."
-      },
-      referenceSources: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            url: { type: Type.STRING }
-          }
-        },
-        description: "Exactly 15 reference sources used to generate this simulation."
-      },
-      timeline: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            year: { type: Type.STRING },
-            predictedEvent: { type: Type.STRING }
-          },
-          required: ["year", "predictedEvent"]
-        }
-      }
-    },
-    required: ["economicScore", "socialScore", "personalImpactSummary", "forensicExplanation", "newsPredictions", "socialDiscourse", "referenceSources", "timeline"]
-  };
-
   const systemInstruction = "You are an advanced policy forecaster. MANDATORY: Exactly 3 paragraphs for forensicExplanation, 10 news items, 10 social discourse links, and 15 reference sites. All results MUST be personalized to the user's profile." + tone;
 
   try {
@@ -181,8 +90,7 @@ export const simulatePolicy = async (policy: string, profile: UserProfile, model
     });
 
     const parsed = JSON.parse(response.text || "{}");
-
-    // Helper to ensure item counts
+    
     const ensureCount = (arr: any[], count: number, filler: (i: number) => any) => {
       const list = Array.isArray(arr) ? arr : [];
       while (list.length < count) list.push(filler(list.length));
@@ -207,85 +115,25 @@ export const simulatePolicy = async (policy: string, profile: UserProfile, model
     }));
 
     return parsed as PolicyImpact;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Policy Simulation Failed:", error);
-    throw error;
+    const isMissingKey = error.message?.includes("MISSING_KEY");
+    return {
+      economicScore: 0,
+      socialScore: 0,
+      personalImpactSummary: isMissingKey ? "Missing API Key. Please recalibrate in settings." : "Simulation failed. Please check your connection or API key.",
+      forensicExplanation: "We encountered an error while processing your request.\n\nThis usually happens if your API key is invalid or if there's a network problem.\n\nPlease verify your settings and try again.",
+      newsPredictions: [],
+      socialDiscourse: [],
+      referenceSources: [],
+      timeline: []
+    } as any;
   }
 };
 
 export const trackCampaignFinance = async (query: string, modelId: AIModelId, attachments?: any[]): Promise<FinanceTrackerResponse> => {
   const lang = getActiveLanguage();
   const tone = getToneInstruction(lang);
-  
-  const financeSchema = {
-    type: Type.OBJECT,
-    properties: {
-      summary: { type: Type.STRING, description: "A simple note about who is giving money." },
-      forensicExplanation: { type: Type.STRING, description: "Exactly 3 detailed paragraphs explaining the results, purpose, and context." },
-      donors: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING },
-            amount: { type: Type.STRING },
-            affiliation: { type: Type.STRING },
-            controversy: { type: Type.STRING },
-            sourceLink: { type: Type.STRING }
-          }
-        }
-      },
-      socialMediaFeed: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            platform: { type: Type.STRING },
-            headline: { type: Type.STRING },
-            link: { type: Type.STRING },
-            context: { type: Type.STRING, description: "One sentence summary of discourse/controversy." }
-          }
-        },
-        description: "Exactly 15 results including predictions and controversies."
-      },
-      newsFeed: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            headline: { type: Type.STRING },
-            source: { type: Type.STRING },
-            link: { type: Type.STRING }
-          }
-        },
-        description: "Exactly 10 results from news sources."
-      },
-      referenceSources: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            url: { type: Type.STRING }
-          }
-        },
-        description: "Exactly 15 reference sources used to process the input."
-      },
-      sources: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            uri: { type: Type.STRING },
-            trustScore: { type: Type.STRING }
-          }
-        }
-      }
-    },
-    required: ["summary", "forensicExplanation", "donors", "socialMediaFeed", "newsFeed", "referenceSources", "sources"]
-  };
-
   const systemInstruction = "You are an honest tracker who shows where money flows. MANDATORY: Exactly 3 paragraphs for forensicExplanation, 10 news items, 15 social chat results, and 15 reference sites." + tone;
 
   try {
@@ -298,7 +146,6 @@ export const trackCampaignFinance = async (query: string, modelId: AIModelId, at
 
     const parsed = JSON.parse(response.text || "{}");
 
-    // Helper to ensure item counts
     const ensureCount = (arr: any[], count: number, filler: (i: number) => any) => {
       const list = Array.isArray(arr) ? arr : [];
       while (list.length < count) list.push(filler(list.length));
@@ -324,8 +171,17 @@ export const trackCampaignFinance = async (query: string, modelId: AIModelId, at
     }));
 
     return parsed as FinanceTrackerResponse;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Finance Tracking Failed:", error);
-    throw error;
+    const isMissingKey = error.message?.includes("MISSING_KEY");
+    return {
+      summary: isMissingKey ? "Missing API Key" : "Tracking Error",
+      forensicExplanation: "The finance tracker could not retrieve data at this time.\n\nPlease ensure your API key is correctly configured in the setup wizard.\n\nIf the problem persists, check your internet connection.",
+      donors: [],
+      socialMediaFeed: [],
+      newsFeed: [],
+      referenceSources: [],
+      sources: []
+    } as any;
   }
 };

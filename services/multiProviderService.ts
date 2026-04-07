@@ -4,7 +4,9 @@ import { languageNames } from "./i18n";
 
 const getVault = (): ProviderConfig => {
   const saved = localStorage.getItem('factium_vault');
-  if (saved) return JSON.parse(saved);
+  if (saved) {
+    return JSON.parse(saved);
+  }
   return { activeProvider: 'google', keys: {} };
 };
 
@@ -53,8 +55,6 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
           }
         });
       } else {
-        // For non-image files, we'll try to include their content as text if possible
-        // If it's a data URL, we might need to decode it if it's text
         if (att.data.startsWith('data:text/') || att.data.startsWith('data:application/json')) {
           try {
             const base64Data = att.data.split(',')[1];
@@ -74,16 +74,25 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
     case 'google':
     case 'factium-native':
     case 'gemini-3-pro-preview':
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-      return await ai.models.generateContent({
-        model: provider === 'gemini-3-pro-preview' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview',
-        contents: { parts },
-        config: {
-          systemInstruction: finalSystem,
-          responseMimeType: options.json ? "application/json" : "text/plain",
-          tools: [{ googleSearch: {} }]
+      const googleKey = vault.keys['google'] || vault.keys['factium-native'] || vault.keys['gemini-3-pro-preview'];
+      if (!googleKey) throw new Error("MISSING_KEY_google");
+      
+      try {
+        const ai = new GoogleGenAI({ apiKey: googleKey });
+        return await ai.models.generateContent({
+          model: provider === 'gemini-3-pro-preview' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview',
+          contents: { parts },
+          config: {
+            systemInstruction: finalSystem,
+            responseMimeType: options.json ? "application/json" : "text/plain"
+          }
+        });
+      } catch (error: any) {
+        if (error.message?.includes("403") || error.status === 403) {
+          throw new Error("GOOGLE_API_PERMISSION_DENIED: Your API key does not have permission for this model or feature. Please check your Google AI Studio project settings or region support.");
         }
-      });
+        throw error;
+      }
 
     case 'openai':
     case 'gpt-4o':
@@ -122,6 +131,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
           response_format: options.json ? { type: "json_object" } : undefined
         })
       });
+      if (!resOpenAI.ok) throw new Error(`OPENAI_API_ERROR_${resOpenAI.status}`);
       const dataOpenAI = await resOpenAI.json();
       return { text: dataOpenAI.choices[0].message.content, raw: dataOpenAI };
 
@@ -129,9 +139,12 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
       if (provider.startsWith('custom-')) {
         const custom = vault.customProviders?.find(cp => cp.id === provider);
         if (!custom) throw new Error("CUSTOM_PROVIDER_NOT_FOUND");
+        const customKey = custom.apiKey || vault.keys[custom.id];
+        if (!customKey) throw new Error(`MISSING_KEY_${custom.id}`);
+        
         const resCustom = await fetch(custom.endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${custom.apiKey || vault.keys[custom.id]}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${customKey}` },
           body: JSON.stringify({
             model: custom.modelId,
             messages: [
@@ -141,20 +154,31 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
             response_format: options.json ? { type: "json_object" } : undefined
           })
         });
+        if (!resCustom.ok) throw new Error(`CUSTOM_API_ERROR_${resCustom.status}`);
         const dataCustom = await resCustom.json();
         return { text: dataCustom.choices[0].message.content, raw: dataCustom };
       }
-      // Fallback to google if unknown
-      const fallbackAi = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-      return await fallbackAi.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: {
-          systemInstruction: finalSystem,
-          responseMimeType: options.json ? "application/json" : "text/plain",
-          tools: [{ googleSearch: {} }]
+      
+      // Fallback to google if unknown, but still require key
+      const fallbackKey = vault.keys['google'];
+      if (!fallbackKey) throw new Error("MISSING_KEY_google");
+      
+      try {
+        const fallbackAi = new GoogleGenAI({ apiKey: fallbackKey });
+        return await fallbackAi.models.generateContent({
+          model: 'gemini-3-flash-preview',
+          contents: prompt,
+          config: {
+            systemInstruction: finalSystem,
+            responseMimeType: options.json ? "application/json" : "text/plain"
+          }
+        });
+      } catch (error: any) {
+        if (error.message?.includes("403") || error.status === 403) {
+          throw new Error("GOOGLE_API_PERMISSION_DENIED: Your API key does not have permission for this model or feature. Please check your Google AI Studio project settings or region support.");
         }
-      });
+        throw error;
+      }
   }
 };
 

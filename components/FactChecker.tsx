@@ -25,14 +25,14 @@ const FactChecker: React.FC<FactCheckerProps> = ({ onBack, onHome, onGuide, onAd
   const [metric, setMetric] = useState<BiasMetric | null>(null);
   const [selectedModel, setSelectedModel] = useState<AIModelId>('factium-native');
   const [mode, setMode] = useState<ResearchMode>(ResearchMode.RESTRICTED);
-  const [activeTab, setActiveTab] = useState<'report' | 'forensic' | 'proof'>('report');
+  const [activeTab, setActiveTab] = useState<'report' | 'forensic' | 'discovery' | 'proof'>('report');
 
   const t = translations[language];
 
-  // Sync active tab when mode changes to ensure restricted tabs are not accessible
+  // Sync active tab when mode changes
   useEffect(() => {
-    if (mode === ResearchMode.RESTRICTED && activeTab === 'report') {
-      setActiveTab('forensic');
+    if (mode === ResearchMode.RESTRICTED && activeTab === 'discovery') {
+      setActiveTab('report');
     }
   }, [mode]);
 
@@ -131,20 +131,26 @@ const FactChecker: React.FC<FactCheckerProps> = ({ onBack, onHome, onGuide, onAd
         {metric && (
           <div id="fact-checker-results" className="animate-fade-in space-y-8">
             <div id="fact-checker-tabs" className="flex flex-wrap gap-3">
-              {mode === ResearchMode.UNRESTRICTED && (
-                <button 
-                  onClick={() => setActiveTab('report')}
-                  className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border-2 ${activeTab === 'report' ? 'bg-primary border-primary text-white shadow-lg' : 'bg-surface border-border text-text-muted hover:border-primary/50'}`}
-                >
-                  <IconActivity className="w-4 h-4" /> {t.factChecker.tabs.report}
-                </button>
-              )}
+              <button 
+                onClick={() => setActiveTab('report')}
+                className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border-2 ${activeTab === 'report' ? 'bg-primary border-primary text-white shadow-lg' : 'bg-surface border-border text-text-muted hover:border-primary/50'}`}
+              >
+                <IconActivity className="w-4 h-4" /> {t.factChecker.tabs.report}
+              </button>
               <button 
                 onClick={() => setActiveTab('forensic')}
                 className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border-2 ${activeTab === 'forensic' ? 'bg-primary border-primary text-white shadow-lg' : 'bg-surface border-border text-text-muted hover:border-primary/50'}`}
               >
                 <IconInfo className="w-4 h-4" /> {t.factChecker.tabs.forensic}
               </button>
+              {mode === ResearchMode.UNRESTRICTED && (
+                <button 
+                  onClick={() => setActiveTab('discovery')}
+                  className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border-2 ${activeTab === 'discovery' ? 'bg-primary border-primary text-white shadow-lg' : 'bg-surface border-border text-text-muted hover:border-primary/50'}`}
+                >
+                  <IconRefresh className="w-4 h-4" /> {t.factChecker.tabs.discovery}
+                </button>
+              )}
               <button 
                 onClick={() => setActiveTab('proof')}
                 className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border-2 ${activeTab === 'proof' ? 'bg-primary border-primary text-white shadow-lg' : 'bg-surface border-border text-text-muted hover:border-primary/50'}`}
@@ -153,11 +159,13 @@ const FactChecker: React.FC<FactCheckerProps> = ({ onBack, onHome, onGuide, onAd
               </button>
             </div>
 
-            {activeTab === 'report' && mode === ResearchMode.UNRESTRICTED && (
+            {activeTab === 'report' && (
               <div className="space-y-8 animate-slide-up">
                 <div className="grid md:grid-cols-2 gap-8">
                   <div className="glass-card p-10 rounded-[3rem] border border-primary/20 bg-surface/40 shadow-xl flex flex-col items-center">
-                     <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-10 opacity-60">Bias Meter</h4>
+                     <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-10 opacity-60">
+                       {mode === ResearchMode.UNRESTRICTED ? 'Unfiltered Bias Meter' : 'Bias Meter'}
+                     </h4>
                      <div className="h-48 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="100%" barSize={10} data={chartData} startAngle={180} endAngle={0}>
@@ -166,7 +174,7 @@ const FactChecker: React.FC<FactCheckerProps> = ({ onBack, onHome, onGuide, onAd
                             {metric.score}%
                           </text>
                           <text x="50%" y="60%" textAnchor="middle" dominantBaseline="middle" className="fill-text-muted text-[10px] uppercase font-black tracking-widest">
-                            {metric.label}
+                            {mode === ResearchMode.UNRESTRICTED ? `UNFILTERED: ${metric.label}` : metric.label}
                           </text>
                         </RadialBarChart>
                       </ResponsiveContainer>
@@ -174,17 +182,21 @@ const FactChecker: React.FC<FactCheckerProps> = ({ onBack, onHome, onGuide, onAd
                   </div>
                   
                   <div className="glass-card p-10 rounded-[3rem] border border-border/40 bg-surface/40 shadow-xl">
-                    <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-6 opacity-60">Quick Summary</h4>
-                    <p className="text-text font-serif italic text-lg leading-relaxed opacity-90 border-l-4 border-primary/20 pl-6">
-                      {metric.reasoning}
-                    </p>
+                    <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-6 opacity-60">
+                      {mode === ResearchMode.UNRESTRICTED ? 'Unfiltered Summary' : 'Quick Summary'}
+                    </h4>
+                    <div className="prose prose-invert prose-sm max-w-none text-text font-serif italic text-lg leading-relaxed opacity-90 border-l-4 border-primary/20 pl-6">
+                      <ReactMarkdown>{metric.reasoning}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
 
                 <div className="glass-card p-10 rounded-[3rem] border border-border/40 bg-surface/40 shadow-xl">
-                    <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-8 opacity-60">News, Controversies & Conspiracies</h4>
+                    <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-8 opacity-60">
+                      {mode === ResearchMode.UNRESTRICTED ? 'Unfiltered News & Gist Sources' : 'News, Controversies & Conspiracies'}
+                    </h4>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {metric.findingsSources.map((s, idx) => (
+                      {metric.findingsSources.slice(0, mode === ResearchMode.UNRESTRICTED ? 10 : 15).map((s, idx) => (
                         <a 
                           key={idx} 
                           href={s.url} 
@@ -192,12 +204,28 @@ const FactChecker: React.FC<FactCheckerProps> = ({ onBack, onHome, onGuide, onAd
                           rel="noopener noreferrer" 
                           className="p-6 rounded-3xl bg-black/20 border border-white/5 hover:border-primary transition-all group shadow-md"
                         >
-                          <span className="text-[9px] font-black text-text-muted uppercase mb-2 block tracking-widest">FINDING #{idx + 1}</span>
+                          <span className="text-[9px] font-black text-text-muted uppercase mb-2 block tracking-widest">
+                            {mode === ResearchMode.UNRESTRICTED ? 'UNFILTERED GIST' : 'FINDING'} #{idx + 1}
+                          </span>
                           <p className="text-sm font-serif italic leading-snug line-clamp-2 mb-4">{s.description}</p>
                           <span className="text-[9px] font-black text-primary uppercase tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-opacity">Read Story →</span>
                         </a>
                       ))}
                     </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'discovery' && mode === ResearchMode.UNRESTRICTED && (
+              <div className="glass-card p-12 rounded-[3.5rem] border border-primary/20 bg-surface/40 shadow-2xl animate-slide-up">
+                <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-10 border-b border-primary/10 pb-6">{t.factChecker.tabs.discovery}</h4>
+                <div className="grid md:grid-cols-2 gap-8">
+                  {metric.omittedPoints.map((point, i) => (
+                    <div key={i} className="p-8 rounded-3xl bg-black/20 border border-white/5 flex gap-6 items-start">
+                       <span className="text-primary font-black text-xl opacity-40">{(i+1).toString().padStart(2, '0')}</span>
+                       <p className="text-text font-serif italic text-lg leading-relaxed">{point}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
