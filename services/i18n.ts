@@ -303,7 +303,27 @@ const enSet = generateSet({
     },
   research: { title: "SEARCH CENTER", subtitle: "A quiet place to find out what's really happening.", modeRestricted: "Filtered", modeUnrestricted: "Unfiltered", placeholder1: "Ask me anything...", placeholder2: "Look for deep and hidden answers...", loading: "Finding the details...", briefing: "Clear Summary", controversies: "Controversies & Conspiracies", insights: "Important Notes", social: "What People Say", visuals: "Images", sources: "Where We Found It", initiate: "Pick a section to see more." },
   factChecker: { title: "THE TRUTH CHECKER", subtitle: "Taking out the noise to find the real story.", modeRestricted: "Quick Check", modeUnrestricted: "Deep Look", placeholder: "Paste a story or link here...", run: "Check It Now", loading: "Thinking it over...", tabs: { report: "Controversies", forensic: "How we know", discovery: "More to see", proof: "Reference Sources" } },
-  policy: { title: "FUTURE LOOK", subtitle: "See how new laws might change your life.", denied: "WE NEED MORE INFO", deniedDesc: "Please tell us a bit about yourself so we can give you a better answer.", configureBtn: "FILL OUT MY DETAILS", activeProfile: "DETAILS LOADED", refillProfile: "Change my details", profileVault: "Profile Vault", placeholder: "E.g., A new tax law or job program...", runBtn: "SEE MY FUTURE", scoreTitle: "The Change (-10 to +10)", narrativeTitle: "What this means for you", timelineTitle: "When things happen", tabs: { impact: "Impact Summary", analysis: "Detailed Analysis", news: "News & Trends", discourse: "Public Discourse", verification: "Verification" } },
+  policy: { 
+    title: "FUTURE LOOK", 
+    subtitle: "See how new laws might change your life.", 
+    denied: "WE NEED MORE INFO", 
+    deniedDesc: "Please tell us a bit about yourself so we can give you a better answer.", 
+    configureBtn: "FILL OUT MY DETAILS", 
+    activeProfile: "DETAILS LOADED", 
+    refillProfile: "Change my details", 
+    profileVault: "Reference Profiles", 
+    placeholder: "E.g., A new tax law or job program...", 
+    runBtn: "SEE MY FUTURE", 
+    scoreTitle: "The Change (-10 to +10)", 
+    narrativeTitle: "What this means for you", 
+    timelineTitle: "When things happen", 
+    tabs: { 
+      analysis: "Analysis & Explanation (3 Paragraphs)", 
+      news: "News & Trends (10)", 
+      discourse: "Public Discourse (10)", 
+      verification: "Reference Sources (15)" 
+    } 
+  },
   finance: { title: "MONEY TRACKER", subtitle: "See who is paying for the big events.", placeholder: "Enter a person or event...", btn: "TRACK MONEY", briefTitle: "Simple Summary", tabs: { donors: "Top Givers", social: "Online Chat", news: "Latest News", analysis: "Analysis", verification: "Reference Sources" }, sourceVerify: "Check Proof", noData: "Nothing found right now." },
   models: { title: "THE TOOL BOX", subtitle: "Manage your keys and pick your favorite helpers.", tabs: { vault: "Secure Keys", marketplace: "More Tools", custom: "Make Your Own" }, vaultHeader: "Connect to the Web", vaultDesc: "Add your keys to use different smart tools.", geminiStatus: "Gemini is already active and ready.", saveBtn: "Save My Keys", purchase: "Get Access", licenseAcquired: "Ready to Use", forgeTitle: "Create a Helper", forgeBtn: "Save Helper", identityLabel: "Helper Name", personaLabel: "How they should act", activeModelsTitle: "My Current Helpers" },
   profile: { title: "MY DETAILS", subtitle: "Tell us a bit about you for better results.", autofill: "Fill from Device", restored: "Done", labels: { name: "Name or Nickname", location: "Where you live", income: "Money you earn", family: "Family size", occupation: "What you do", political: "General views" }, saveBtn: "SAVE MY INFO", savedMsg: "Your info is safe and saved." },

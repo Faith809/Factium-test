@@ -12,6 +12,12 @@ const getVault = (): ProviderConfig => {
 
 const getActiveLanguage = (): LanguageCode => (localStorage.getItem('factium_lang') as LanguageCode) || 'en';
 
+const ensureString = (val: any): string => {
+  if (Array.isArray(val)) return val.join('\n\n');
+  if (typeof val === 'string') return val;
+  return String(val || '');
+};
+
 export const providers = [
   { id: 'google', name: 'Google Gemini', isFreeTierAvailable: true, keyUrl: 'https://aistudio.google.com/app/apikey', description: 'Quick answers that are easy to understand.' },
   { id: 'openai', name: 'OpenAI GPT-4o', isFreeTierAvailable: false, keyUrl: 'https://platform.openai.com/api-keys', description: 'Smart and clear thinking.' },
@@ -77,22 +83,16 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
       const googleKey = vault.keys['google'] || vault.keys['factium-native'] || vault.keys['gemini-3-pro-preview'];
       if (!googleKey) throw new Error("MISSING_KEY_google");
       
-      try {
-        const ai = new GoogleGenAI({ apiKey: googleKey });
-        return await ai.models.generateContent({
-          model: provider === 'gemini-3-pro-preview' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview',
-          contents: { parts },
-          config: {
-            systemInstruction: finalSystem,
-            responseMimeType: options.json ? "application/json" : "text/plain"
-          }
-        });
-      } catch (error: any) {
-        if (error.message?.includes("403") || error.status === 403) {
-          throw new Error("GOOGLE_API_PERMISSION_DENIED: Your API key does not have permission for this model or feature. Please check your Google AI Studio project settings or region support.");
+      const ai = new GoogleGenAI({ apiKey: googleKey });
+      return await ai.models.generateContent({
+        model: provider === 'gemini-3-pro-preview' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview',
+        contents: { parts },
+        config: {
+          systemInstruction: finalSystem,
+          responseMimeType: options.json ? "application/json" : "text/plain",
+          tools: [{ googleSearch: {} }]
         }
-        throw error;
-      }
+      });
 
     case 'openai':
     case 'gpt-4o':
@@ -163,22 +163,16 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
       const fallbackKey = vault.keys['google'];
       if (!fallbackKey) throw new Error("MISSING_KEY_google");
       
-      try {
-        const fallbackAi = new GoogleGenAI({ apiKey: fallbackKey });
-        return await fallbackAi.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: prompt,
-          config: {
-            systemInstruction: finalSystem,
-            responseMimeType: options.json ? "application/json" : "text/plain"
-          }
-        });
-      } catch (error: any) {
-        if (error.message?.includes("403") || error.status === 403) {
-          throw new Error("GOOGLE_API_PERMISSION_DENIED: Your API key does not have permission for this model or feature. Please check your Google AI Studio project settings or region support.");
+      const fallbackAi = new GoogleGenAI({ apiKey: fallbackKey });
+      return await fallbackAi.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: {
+          systemInstruction: finalSystem,
+          responseMimeType: options.json ? "application/json" : "text/plain",
+          tools: [{ googleSearch: {} }]
         }
-        throw error;
-      }
+      });
   }
 };
 
@@ -251,10 +245,10 @@ export const forensicResearch = async (query: string, mode: ResearchMode, modelI
   }));
 
   return {
-    summary: finalSummary,
+    summary: ensureString(finalSummary),
     scandals: finalScandals,
     socialWire: finalSocialWire,
-    detailedInfo: parsed.detailedInfo || "Deep analysis is being prepared.",
+    detailedInfo: ensureString(parsed.detailedInfo || "Deep analysis is being prepared."),
     visualArchives: finalVisuals,
     sourceIndex: finalSources
   };

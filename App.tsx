@@ -276,7 +276,21 @@ const App: React.FC = () => {
             {currentView === AppView.FINANCE_TRACKER && <FinanceTracker onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('finance')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />}
             {currentView === AppView.MY_MODELS && <MyAIModels onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('models')} language={language} />}
             {currentView === AppView.ABOUT && <AboutPage onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('about')} language={language} />}
-            {currentView === AppView.PROFILE && <UserProfileForm currentProfile={userProfile} onSave={(p) => {setUserProfile(p); localStorage.setItem('factium_profile', JSON.stringify(p));}} onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('profile')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />}
+            {currentView === AppView.PROFILE && <UserProfileForm currentProfile={userProfile} onSave={(p) => {
+              setUserProfile(p); 
+              localStorage.setItem('factium_profile', JSON.stringify(p));
+              // Update vault
+              const vault = localStorage.getItem('factium_profile_vault');
+              let parsedVault = vault ? JSON.parse(vault) : [];
+              if (!Array.isArray(parsedVault)) parsedVault = [];
+              const existingIdx = parsedVault.findIndex((v: any) => v.name === p.name);
+              if (existingIdx >= 0) {
+                parsedVault[existingIdx] = p;
+              } else {
+                parsedVault.push(p);
+              }
+              localStorage.setItem('factium_profile_vault', JSON.stringify(parsedVault));
+            }} onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('profile')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />}
          </div>
       </main>
 

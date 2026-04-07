@@ -27,7 +27,7 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
   const [loading, setLoading] = useState(false);
   const [impact, setImpact] = useState<PolicyImpact | null>(null);
   const [selectedModel, setSelectedModel] = useState<AIModelId>('factium-native');
-  const [activeTab, setActiveTab] = useState<'impact' | 'analysis' | 'news' | 'discourse' | 'verification'>('impact');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'news' | 'discourse' | 'verification'>('analysis');
   
   // Profile Vault
   const [profileVault, setProfileVault] = useState<UserProfile[]>([]);
@@ -39,13 +39,21 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
     // Load vault from localStorage (System storage for user protection)
     const vault = localStorage.getItem('factium_profile_vault');
     if (vault) {
-      const parsedVault = JSON.parse(vault) as UserProfile[];
-      setProfileVault(parsedVault);
-      // If the current initial profile is not in vault, add it
-      if (!parsedVault.find(p => p.name === initialProfile.name)) {
-          const newVault = [initialProfile, ...parsedVault];
-          setProfileVault(newVault);
-          localStorage.setItem('factium_profile_vault', JSON.stringify(newVault));
+      try {
+        const parsedVault = JSON.parse(vault);
+        if (Array.isArray(parsedVault)) {
+          setProfileVault(parsedVault);
+          // If the current initial profile is not in vault, add it
+          if (!parsedVault.find(p => p.name === initialProfile.name)) {
+              const newVault = [initialProfile, ...parsedVault];
+              setProfileVault(newVault);
+              localStorage.setItem('factium_profile_vault', JSON.stringify(newVault));
+          }
+        } else {
+          setProfileVault([initialProfile]);
+        }
+      } catch (e) {
+        setProfileVault([initialProfile]);
       }
     } else {
       setProfileVault([initialProfile]);
@@ -60,7 +68,7 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
     try {
       const result = await simulatePolicy(policy, selectedVaultProfile, selectedModel, attachments);
       setImpact(result);
-      setActiveTab('impact');
+      setActiveTab('analysis');
       
       // Save to DB
       await saveSyncData({
@@ -115,23 +123,32 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
       <NavBar onBack={onBack} onHome={onHome} onGuide={onGuide} title={t.policy.title} language={language} />
       
       {/* Profile Switcher Dropdown (Referenced Profiles) */}
-      <div id="policy-profile-status" className="flex flex-col md:flex-row justify-between items-center gap-4 bg-surface p-4 rounded-2xl border border-border/40 shadow-sm animate-fade-in">
-        <div className="flex items-center gap-3 flex-1">
+      <div id="policy-profile-status" className="flex flex-col md:flex-row justify-between items-center gap-4 bg-surface p-6 rounded-3xl border border-border/40 shadow-xl animate-fade-in">
+        <div className="flex items-center gap-4 flex-1 w-full">
             <div className="flex flex-col w-full">
-                <TerminalSelect
-                    label={t.policy.profileVault}
-                    value={selectedVaultProfile.name}
-                    onChange={handleProfileSwitch}
-                    historyKey="policy_profile_vault"
-                    icon={<IconUser className="w-4 h-4" />}
-                    options={profileVault.map(p => ({
-                        value: p.name,
-                        label: `${p.name} (${p.location})`
-                    }))}
-                />
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">{t.policy.profileVault}</span>
+                </div>
+                <div className="relative">
+                    <TerminalSelect
+                        label=""
+                        value={selectedVaultProfile.name}
+                        onChange={handleProfileSwitch}
+                        historyKey="policy_profile_vault"
+                        icon={<IconUser className="w-4 h-4" />}
+                        placeholder="Select Reference Profile"
+                        options={(profileVault || []).map(p => ({
+                            value: p.name,
+                            label: `${p.name} (${p.location} - ${p.occupation})`
+                        }))}
+                    />
+                </div>
             </div>
         </div>
-        <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} onAddMore={onAddMore} />
+        <div className="shrink-0">
+            <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} onAddMore={onAddMore} />
+        </div>
       </div>
 
       <div className="text-center md:text-left py-4">
@@ -156,12 +173,6 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
           {/* Tabs for Future Look */}
           <div className="flex border-b border-border overflow-x-auto custom-scrollbar whitespace-nowrap gap-2">
               <button 
-                onClick={() => setActiveTab('impact')}
-                className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'impact' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-muted hover:text-text'}`}
-              >
-                {t.policy.tabs.impact}
-              </button>
-              <button 
                 onClick={() => setActiveTab('analysis')}
                 className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'analysis' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-muted hover:text-text'}`}
               >
@@ -171,64 +182,23 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
                 onClick={() => setActiveTab('news')}
                 className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'news' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-muted hover:text-text'}`}
               >
-                {t.policy.tabs.news} (10)
+                {t.policy.tabs.news}
               </button>
               <button 
                 onClick={() => setActiveTab('discourse')}
                 className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'discourse' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-muted hover:text-text'}`}
               >
-                {t.policy.tabs.discourse} (10)
+                {t.policy.tabs.discourse}
               </button>
               <button 
                 onClick={() => setActiveTab('verification')}
                 className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'verification' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-text-muted hover:text-text'}`}
               >
-                {t.policy.tabs.verification} (15)
+                {t.policy.tabs.verification}
               </button>
           </div>
 
           <div className="min-h-[500px]">
-            {/* IMPACT TAB */}
-            {activeTab === 'impact' && (
-                <div className="grid md:grid-cols-2 gap-8 animate-slide-up">
-                    <div className="glass-panel p-10 rounded-[3rem] border border-primary/20 bg-surface/40 shadow-xl flex flex-col justify-center">
-                        <h3 className="text-primary text-[10px] font-black uppercase tracking-[0.5em] mb-10 opacity-60">{t.policy.scoreTitle}</h3>
-                        <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={scoreData} layout="vertical" margin={{ left: 20 }}>
-                            <XAxis type="number" domain={[-10, 10]} hide />
-                            <YAxis dataKey="name" type="category" stroke="#525252" fontSize={10} fontWeight="bold" />
-                            <ReferenceLine x={0} stroke="#525252" />
-                            <RechartsTooltip 
-                                contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px' }}
-                                cursor={{fill: 'rgba(220, 38, 38, 0.05)'}}
-                            />
-                            <Bar dataKey="score" fill="#DC2626" radius={[0, 10, 10, 0]} barSize={30} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                        </div>
-                    </div>
-
-                    <div className="glass-panel p-10 rounded-[3rem] space-y-6 shadow-xl bg-surface/40 border border-border/40">
-                        <h3 className="text-primary text-[10px] font-black uppercase tracking-[0.5em] opacity-60">{t.policy.narrativeTitle}</h3>
-                        <p className="text-text italic font-serif text-lg leading-relaxed border-l-4 border-primary/20 pl-8">
-                            {impact.personalImpactSummary}
-                        </p>
-                        
-                        <div className="pt-6 border-t border-border/10">
-                            <h4 className="text-primary text-[10px] font-black uppercase tracking-widest mb-6">{t.policy.timelineTitle}</h4>
-                            <div className="space-y-4">
-                                {impact.timeline.map((event, i) => (
-                                <div key={i} className="flex gap-6 items-start">
-                                    <span className="text-text font-mono text-xs bg-surface border border-border px-3 py-1 rounded-full shadow-sm">{event.year}</span>
-                                    <span className="text-text-muted text-sm italic font-serif leading-relaxed">{event.predictedEvent}</span>
-                                </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* ANALYSIS TAB - 3 PARAGRAPHS */}
             {activeTab === 'analysis' && (
@@ -245,7 +215,7 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
             {/* NEWS & TRENDS TAB - 10 RESULTS */}
             {activeTab === 'news' && (
                 <div className="grid md:grid-cols-2 gap-8 animate-slide-up">
-                    {impact.newsPredictions.map((news, i) => (
+                    {(impact.newsPredictions || []).map((news, i) => (
                         <a 
                             key={i} 
                             href={news.url} 
@@ -267,7 +237,7 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
             {/* PUBLIC DISCOURSE TAB - 10 RESULTS */}
             {activeTab === 'discourse' && (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 animate-slide-up">
-                    {impact.socialDiscourse.map((post, i) => (
+                    {(impact.socialDiscourse || []).map((post, i) => (
                         <a 
                             key={i} 
                             href={post.url} 
@@ -276,12 +246,12 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
                             className="glass-card p-8 rounded-[2rem] border border-border bg-surface/50 hover:border-primary group relative block transition-all hover:shadow-[0_0_40px_rgba(220,38,38,0.1)]"
                         >
                             <div className="flex justify-between items-center mb-6">
-                                <span className="text-[10px] font-black px-4 py-1.5 rounded-full bg-black/40 border border-primary/20 text-primary uppercase tracking-[0.2em]">{post.platform}</span>
+                                <span className="text-[10px] font-black px-4 py-1.5 rounded-full bg-black/40 border border-primary/20 text-primary uppercase tracking-[0.2em]">Source Link</span>
                                 <span className="text-text-muted text-[10px] font-mono">#{i+1}</span>
                             </div>
                             <p className="text-base font-bold text-text italic mb-6 leading-relaxed group-hover:text-white transition-colors">"{post.controversy}"</p>
                             <div className="text-[10px] font-black text-primary text-right uppercase tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-500">
-                                View Debate →
+                                Open Source Site →
                             </div>
                         </a>
                     ))}
@@ -291,7 +261,7 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
             {/* VERIFICATION TAB - 15 RESULTS */}
             {activeTab === 'verification' && (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
-                    {impact.referenceSources.map((ref, i) => (
+                    {(impact.referenceSources || []).map((ref, i) => (
                         <a 
                             key={i} 
                             href={ref.url} 

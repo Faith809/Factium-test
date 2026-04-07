@@ -69,10 +69,10 @@ const TerminalSelect: React.FC<TerminalSelectProps> = ({ label, value, options, 
     localStorage.setItem(`history_${historyKey}`, JSON.stringify(updatedHistory));
   };
 
-  const selectedOption = options.find(o => o.value === value);
+  const selectedOption = (options || []).find(o => o.value === value);
   const displayValue = selectedOption ? selectedOption.label : value || placeholder || "Select Option";
 
-  const filteredOptions = options.filter(opt => 
+  const filteredOptions = (options || []).filter(opt => 
     opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
     opt.value.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -130,7 +130,7 @@ const TerminalSelect: React.FC<TerminalSelectProps> = ({ label, value, options, 
                   onClick={() => handleSelect(h.query)}
                   className="flex items-center justify-between px-6 py-3 hover:bg-primary/10 cursor-pointer group/item transition-colors"
                 >
-                  <span className="text-sm text-text dark:text-white font-serif italic">{options.find(o => o.value === h.query)?.label || h.query}</span>
+                  <span className="text-sm text-text dark:text-white font-serif italic">{(options || []).find(o => o.value === h.query)?.label || h.query}</span>
                   <button
                     onClick={(e) => deleteHistoryEntry(h.id, e)}
                     className="p-1 text-text-muted hover:text-primary opacity-0 group-hover/item:opacity-100 transition-all"
