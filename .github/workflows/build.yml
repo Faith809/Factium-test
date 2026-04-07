@@ -48,8 +48,8 @@ jobs:
         with:
           name: installers-${{ matrix.os }}
           path: |
-            dist*/**/*.{exe,dmg,zip}
-            out/**/*.{exe,dmg,zip}
+            dist-electron/*.{exe,dmg}
+            **/dist*/*.{exe,dmg}
 
   release:
     needs: build
