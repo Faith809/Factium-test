@@ -262,38 +262,73 @@ const App: React.FC = () => {
          <div className="relative p-6 md:p-12 max-w-7xl mx-auto min-h-full">
             <ErrorBoundary>
               {currentView === AppView.DASHBOARD && (
-              <Dashboard 
-                onNavigate={navigateTo} 
-                language={language} 
-                setLanguage={setLanguage} 
-                isQuickAccessEnabled={isQuickAccessEnabled}
-                setQuickAccessEnabled={setQuickAccessEnabled}
-                onStartTour={handleStartTour}
-                onOpenAppearance={() => setAppearanceStationOpen(true)}
-              />
-            )}
-            {currentView === AppView.RESEARCH && <ResearchTool onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('research')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} initialData={initialResearchData} />}
-            {currentView === AppView.FACT_CHECKER && <FactChecker onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('factChecker')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />}
-            {currentView === AppView.POLICY_SIMULATOR && <PolicySimulator userProfile={userProfile} onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('policy')} onNavigate={navigateTo} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />}
-            {currentView === AppView.FINANCE_TRACKER && <FinanceTracker onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('finance')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />}
-            {currentView === AppView.MY_MODELS && <MyAIModels onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('models')} language={language} />}
-            {currentView === AppView.ABOUT && <AboutPage onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('about')} language={language} />}
-            {currentView === AppView.PROFILE && <UserProfileForm currentProfile={userProfile} onSave={(p) => {
-              setUserProfile(p); 
-              localStorage.setItem('factium_profile', JSON.stringify(p));
-              // Update vault
-              const vault = localStorage.getItem('factium_profile_vault');
-              let parsedVault = vault ? JSON.parse(vault) : [];
-              if (!Array.isArray(parsedVault)) parsedVault = [];
-              const existingIdx = parsedVault.findIndex((v: any) => v.name === p.name);
-              if (existingIdx >= 0) {
-                parsedVault[existingIdx] = p;
-              } else {
-                parsedVault.push(p);
-              }
-              localStorage.setItem('factium_profile_vault', JSON.stringify(parsedVault));
-            }} onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('profile')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />}
+                <Dashboard 
+                  onNavigate={navigateTo} 
+                  language={language} 
+                  setLanguage={setLanguage} 
+                  isQuickAccessEnabled={isQuickAccessEnabled}
+                  setQuickAccessEnabled={setQuickAccessEnabled}
+                  onStartTour={handleStartTour}
+                  onOpenAppearance={() => setAppearanceStationOpen(true)}
+                />
+              )}
             </ErrorBoundary>
+
+            {currentView === AppView.RESEARCH && (
+              <ErrorBoundary>
+                <ResearchTool onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('research')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} initialData={initialResearchData} />
+              </ErrorBoundary>
+            )}
+
+            {currentView === AppView.FACT_CHECKER && (
+              <ErrorBoundary>
+                <FactChecker onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('factChecker')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />
+              </ErrorBoundary>
+            )}
+
+            {currentView === AppView.POLICY_SIMULATOR && (
+              <ErrorBoundary>
+                <PolicySimulator userProfile={userProfile} onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('policy')} onNavigate={navigateTo} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />
+              </ErrorBoundary>
+            )}
+
+            {currentView === AppView.FINANCE_TRACKER && (
+              <ErrorBoundary>
+                <FinanceTracker onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('finance')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />
+              </ErrorBoundary>
+            )}
+
+            {currentView === AppView.MY_MODELS && (
+              <ErrorBoundary>
+                <MyAIModels onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('models')} language={language} />
+              </ErrorBoundary>
+            )}
+
+            {currentView === AppView.ABOUT && (
+              <ErrorBoundary>
+                <AboutPage onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('about')} language={language} />
+              </ErrorBoundary>
+            )}
+
+            {currentView === AppView.PROFILE && (
+              <ErrorBoundary>
+                <UserProfileForm currentProfile={userProfile} onSave={(p) => {
+                  setUserProfile(p); 
+                  localStorage.setItem('factium_profile', JSON.stringify(p));
+                  // Update vault
+                  const vault = localStorage.getItem('factium_profile_vault');
+                  let parsedVault = vault ? JSON.parse(vault) : [];
+                  if (!Array.isArray(parsedVault)) parsedVault = [];
+                  const existingIdx = parsedVault.findIndex((v: any) => v.name === p.name);
+                  if (existingIdx >= 0) {
+                    parsedVault[existingIdx] = p;
+                  } else {
+                    parsedVault.push(p);
+                  }
+                  localStorage.setItem('factium_profile_vault', JSON.stringify(parsedVault));
+                }} onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('profile')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />
+              </ErrorBoundary>
+            )}
           </div>
       </main>
 

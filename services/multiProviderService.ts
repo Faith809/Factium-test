@@ -13,24 +13,49 @@ const getVault = (): ProviderConfig => {
   return { activeProvider: 'google', keys: {} };
 };
 
-// Robust fetch wrapper for Electron/Web
-const robustFetch = async (url: string, options: any) => {
-  // If running in Electron and exposed via preload
-  if ((window as any).electronAPI?.fetch) {
-    const res = await (window as any).electronAPI.fetch(url, options);
-    return {
-      ok: res.ok,
-      status: res.status,
-      json: async () => (typeof res.data === 'string' ? JSON.parse(res.data) : res.data),
-      text: async () => (typeof res.data === 'string' ? res.data : JSON.stringify(res.data)),
-      headers: {
-        get: (name: string) => res.headers?.[name.toLowerCase()] || null
+// Safe fetch wrapper for Electron/Web with robust error handling
+const safeFetch = async (url: string, options: any) => {
+  try {
+    // If running in Electron and exposed via preload
+    if ((window as any).electronAPI?.fetch) {
+      const res = await (window as any).electronAPI.fetch(url, options);
+      if (!res.ok) {
+        return {
+          error: true,
+          type: 'NETWORK',
+          status: res.status,
+          message: `Network error: ${res.status}`
+        };
       }
+      return {
+        ok: true,
+        status: res.status,
+        json: async () => (typeof res.data === 'string' ? JSON.parse(res.data) : res.data),
+        text: async () => (typeof res.data === 'string' ? res.data : JSON.stringify(res.data)),
+        headers: {
+          get: (name: string) => res.headers?.[name.toLowerCase()] || null
+        }
+      };
+    }
+    
+    // Standard web fetch
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      return {
+        error: true,
+        type: 'NETWORK',
+        status: response.status,
+        message: `Network error: ${response.status}`
+      };
+    }
+    return response;
+  } catch (err: any) {
+    return {
+      error: true,
+      type: 'NETWORK',
+      message: err.message || 'Unknown network error'
     };
   }
-  
-  // Standard web fetch
-  return await fetch(url, options);
 };
 
 const getActiveLanguage = (): LanguageCode => (localStorage.getItem('factium_lang') as LanguageCode) || 'en';
@@ -109,7 +134,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
       const geminiModel = provider === 'gemini-3-pro-preview' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${googleKey}`;
       
-      const geminiRes = await robustFetch(geminiUrl, {
+      const geminiRes = await safeFetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -122,12 +147,11 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
         })
       });
 
-      if (!geminiRes.ok) {
-        const errData = await geminiRes.json();
-        throw new Error(`GEMINI_API_ERROR_${geminiRes.status}: ${errData.error?.message || 'Unknown error'}`);
+      if ((geminiRes as any).error) {
+        throw geminiRes;
       }
 
-      const geminiData = await geminiRes.json();
+      const geminiData = await (geminiRes as any).json();
       const geminiText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
       return { text: geminiText, raw: geminiData, candidates: geminiData.candidates };
 
@@ -159,7 +183,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
 
       openaiMessages.push({ role: "user", content: userContent });
 
-      const resOpenAI = await robustFetch('https://api.openai.com/v1/chat/completions', {
+      const resOpenAI = await safeFetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
         body: JSON.stringify({
@@ -168,8 +192,8 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
           response_format: options.json ? { type: "json_object" } : undefined
         })
       });
-      if (!resOpenAI.ok) throw new Error(`OPENAI_API_ERROR_${resOpenAI.status}`);
-      const dataOpenAI = await resOpenAI.json();
+      if ((resOpenAI as any).error) throw resOpenAI;
+      const dataOpenAI = await (resOpenAI as any).json();
       return { text: dataOpenAI.choices[0].message.content, raw: dataOpenAI };
 
     default:
@@ -179,7 +203,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
         const customKey = custom.apiKey || vault.keys[custom.id];
         if (!customKey) throw new Error(`MISSING_KEY_${custom.id}`);
         
-        const resCustom = await robustFetch(custom.endpoint, {
+        const resCustom = await safeFetch(custom.endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${customKey}` },
           body: JSON.stringify({
@@ -191,8 +215,8 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
             response_format: options.json ? { type: "json_object" } : undefined
           })
         });
-        if (!resCustom.ok) throw new Error(`CUSTOM_API_ERROR_${resCustom.status}`);
-        const dataCustom = await resCustom.json();
+        if ((resCustom as any).error) throw resCustom;
+        const dataCustom = await (resCustom as any).json();
         return { text: dataCustom.choices[0].message.content, raw: dataCustom };
       }
       
@@ -201,7 +225,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
       if (!fallbackKey) throw new Error("MISSING_KEY_google");
       
       const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${fallbackKey}`;
-      const fbRes = await robustFetch(fbUrl, {
+      const fbRes = await safeFetch(fbUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -214,8 +238,8 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
         })
       });
 
-      if (!fbRes.ok) throw new Error(`GEMINI_FALLBACK_ERROR_${fbRes.status}`);
-      const fbData = await fbRes.json();
+      if ((fbRes as any).error) throw fbRes;
+      const fbData = await (fbRes as any).json();
       return { text: fbData.candidates?.[0]?.content?.parts?.[0]?.text || "", raw: fbData, candidates: fbData.candidates };
   }
 };

@@ -59,8 +59,9 @@ async function createWindow() {
     width: 1280,
     height: 800,
     webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
+      nodeIntegration: true,
+      contextIsolation: false,
+      webSecurity: false,
       preload: path.join(__dirname, 'preload.js')
     },
     title: "Factium AI",
