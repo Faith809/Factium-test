@@ -22,6 +22,7 @@ jobs:
 
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      CSC_IDENTITY_AUTO_DISCOVERY: false
 
     steps:
       - name: Checkout code
@@ -50,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}
-          path: dist-electron/**/*.{exe,dmg,zip}
+          path: "**/*.{exe,dmg,AppImage}"
 
   release:
     needs: build
