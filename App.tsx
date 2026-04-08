@@ -15,6 +15,7 @@ import { translations } from './services/i18n';
 import { createTour } from './services/tourService';
 import AppearanceStation from './components/AppearanceStation';
 import QuickAccessOverlay from './components/QuickAccessOverlay';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
@@ -259,7 +260,8 @@ const App: React.FC = () => {
          </header>
 
          <div className="relative p-6 md:p-12 max-w-7xl mx-auto min-h-full">
-            {currentView === AppView.DASHBOARD && (
+            <ErrorBoundary>
+              {currentView === AppView.DASHBOARD && (
               <Dashboard 
                 onNavigate={navigateTo} 
                 language={language} 
@@ -291,7 +293,8 @@ const App: React.FC = () => {
               }
               localStorage.setItem('factium_profile_vault', JSON.stringify(parsedVault));
             }} onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('profile')} onAddMore={() => navigateTo(AppView.MY_MODELS)} language={language} />}
-         </div>
+            </ErrorBoundary>
+          </div>
       </main>
 
       {isAppearanceStationOpen && (

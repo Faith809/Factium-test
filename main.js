@@ -1,5 +1,5 @@
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, net } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { fork } from 'child_process';
@@ -9,6 +9,29 @@ const __dirname = path.dirname(__filename);
 
 let mainWindow;
 let backendProcess;
+
+// Handle internal API routing to bypass CORS and handle packaged paths
+ipcMain.handle('electron-fetch', async (event, { url, options }) => {
+  try {
+    const response = await net.fetch(url, options);
+    let data;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+    return {
+      ok: response.ok,
+      status: response.status,
+      data: data,
+      headers: Object.fromEntries(response.headers.entries())
+    };
+  } catch (error) {
+    console.error('Electron Fetch Error:', error);
+    return { ok: false, status: 500, error: error.message };
+  }
+});
 
 function startBackend() {
   const backendPath = path.join(__dirname, 'backend', 'server.js');
@@ -48,8 +71,17 @@ async function createWindow() {
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
   } else {
+    // Ensure all internal links are relative and handle file:// protocol correctly
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
+
+  // Prevent "Ghost Server" errors by ensuring we don't try to connect to localhost:3000 in production
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    if (!isDev && validatedURL.includes('localhost:3000')) {
+      console.warn('Redirecting ghost server request to local file...');
+      mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+    }
+  });
 }
 
 app.whenReady().then(createWindow);

@@ -1,5 +1,4 @@
 
-import { Type } from "@google/genai";
 import { UserProfile, AIModelId, BiasMetric, PolicyImpact, FinanceTrackerResponse, LanguageCode, ResearchMode } from "../types";
 import { languageNames } from "./i18n";
 import { callAI } from "./multiProviderService";

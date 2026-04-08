@@ -1,13 +1,36 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { ProviderConfig, AIProviderId, DetailedResearchResponse, ResearchMode, LanguageCode, AIModelId } from "../types";
 import { languageNames } from "./i18n";
 
 const getVault = (): ProviderConfig => {
-  const saved = localStorage.getItem('factium_vault');
-  if (saved) {
-    return JSON.parse(saved);
+  try {
+    const saved = localStorage.getItem('factium_vault');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error("Vault retrieval failed:", e);
   }
   return { activeProvider: 'google', keys: {} };
+};
+
+// Robust fetch wrapper for Electron/Web
+const robustFetch = async (url: string, options: any) => {
+  // If running in Electron and exposed via preload
+  if ((window as any).electronAPI?.fetch) {
+    const res = await (window as any).electronAPI.fetch(url, options);
+    return {
+      ok: res.ok,
+      status: res.status,
+      json: async () => (typeof res.data === 'string' ? JSON.parse(res.data) : res.data),
+      text: async () => (typeof res.data === 'string' ? res.data : JSON.stringify(res.data)),
+      headers: {
+        get: (name: string) => res.headers?.[name.toLowerCase()] || null
+      }
+    };
+  }
+  
+  // Standard web fetch
+  return await fetch(url, options);
 };
 
 const getActiveLanguage = (): LanguageCode => (localStorage.getItem('factium_lang') as LanguageCode) || 'en';
@@ -83,16 +106,30 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
       const googleKey = vault.keys['google'] || vault.keys['factium-native'] || vault.keys['gemini-3-pro-preview'];
       if (!googleKey) throw new Error("MISSING_KEY_google");
       
-      const ai = new GoogleGenAI({ apiKey: googleKey });
-      return await ai.models.generateContent({
-        model: provider === 'gemini-3-pro-preview' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview',
-        contents: { parts },
-        config: {
-          systemInstruction: finalSystem,
-          responseMimeType: options.json ? "application/json" : "text/plain",
-          tools: [{ googleSearch: {} }]
-        }
+      const geminiModel = provider === 'gemini-3-pro-preview' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${googleKey}`;
+      
+      const geminiRes = await robustFetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts }],
+          system_instruction: { parts: [{ text: finalSystem }] },
+          generation_config: {
+            response_mime_type: options.json ? "application/json" : "text/plain",
+          },
+          tools: [{ google_search: {} }]
+        })
       });
+
+      if (!geminiRes.ok) {
+        const errData = await geminiRes.json();
+        throw new Error(`GEMINI_API_ERROR_${geminiRes.status}: ${errData.error?.message || 'Unknown error'}`);
+      }
+
+      const geminiData = await geminiRes.json();
+      const geminiText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      return { text: geminiText, raw: geminiData, candidates: geminiData.candidates };
 
     case 'openai':
     case 'gpt-4o':
@@ -122,7 +159,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
 
       openaiMessages.push({ role: "user", content: userContent });
 
-      const resOpenAI = await fetch('https://api.openai.com/v1/chat/completions', {
+      const resOpenAI = await robustFetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
         body: JSON.stringify({
@@ -142,7 +179,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
         const customKey = custom.apiKey || vault.keys[custom.id];
         if (!customKey) throw new Error(`MISSING_KEY_${custom.id}`);
         
-        const resCustom = await fetch(custom.endpoint, {
+        const resCustom = await robustFetch(custom.endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${customKey}` },
           body: JSON.stringify({
@@ -163,16 +200,23 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
       const fallbackKey = vault.keys['google'];
       if (!fallbackKey) throw new Error("MISSING_KEY_google");
       
-      const fallbackAi = new GoogleGenAI({ apiKey: fallbackKey });
-      return await fallbackAi.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: {
-          systemInstruction: finalSystem,
-          responseMimeType: options.json ? "application/json" : "text/plain",
-          tools: [{ googleSearch: {} }]
-        }
+      const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${fallbackKey}`;
+      const fbRes = await robustFetch(fbUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          system_instruction: { parts: [{ text: finalSystem }] },
+          generation_config: {
+            response_mime_type: options.json ? "application/json" : "text/plain",
+          },
+          tools: [{ google_search: {} }]
+        })
       });
+
+      if (!fbRes.ok) throw new Error(`GEMINI_FALLBACK_ERROR_${fbRes.status}`);
+      const fbData = await fbRes.json();
+      return { text: fbData.candidates?.[0]?.content?.parts?.[0]?.text || "", raw: fbData, candidates: fbData.candidates };
   }
 };
 

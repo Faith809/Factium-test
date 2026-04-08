@@ -10,6 +10,14 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        hmr: mode === 'development',
+      },
+      build: {
+        outDir: 'dist',
+        emptyOutDir: true,
+        minify: 'esbuild',
+        reportCompressedSize: false,
+        chunkSizeWarningLimit: 2000,
       },
       plugins: [react(), tailwindcss()],
       define: {
