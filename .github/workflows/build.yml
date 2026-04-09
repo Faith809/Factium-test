@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}
-          path: "**/*.{exe,dmg,AppImage}"
+          path: dist_electron/**/*.exe
 
   release:
     needs: build
