@@ -55,10 +55,22 @@ async function createWindow() {
   // Start backend server
   startBackend();
 
+  // FORCE CLEAN START: Clear session data to prevent "Cache Loops" or "PWA Shielding"
+  // This programmatically does what "deleting %AppData%" does manually.
+  if (app.isPackaged) {
+    const { session } = await import('electron');
+    await session.defaultSession.clearStorageData();
+    await session.defaultSession.clearCache();
+    console.log('Production: Session and Cache cleared for fresh start.');
+  }
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     webPreferences: {
+      // CRITICAL: Bypassing Protocol Restrictions
+      // Packaged apps run on file:// which is untrusted by default.
+      // Disabling webSecurity allows the app to call AI APIs (Gemini/OpenAI) without CORS blocks.
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false,

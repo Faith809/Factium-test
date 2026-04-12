@@ -1,7 +1,7 @@
 {
   "name": "lates-factium-ai-v3",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Factium AI - Advanced Fact-Checking and Bias Analysis",
   "author": "Factium AI Team",
   "main": "main.js",
@@ -45,7 +45,7 @@
   },
   "build": {
     "productName": "Factium AI",
-    "appId": "com.factium.ai.v110",
+    "appId": "com.factium.ai.v111",
     "directories": {
       "output": "dist_electron"
     },
