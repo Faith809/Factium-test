@@ -1,7 +1,7 @@
 {
   "name": "lates-factium-ai-v3",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Factium AI - Advanced Fact-Checking and Bias Analysis",
   "author": "Factium AI Team",
   "main": "main.js",
@@ -9,7 +9,7 @@
   "packageManager": "npm@10.8.1",
   "scripts": {
     "dev": "vite",
-    "build": "rimraf dist && vite build",
+    "build": "rimraf dist && vite build --base=./",
     "lint": "tsc --noEmit",
     "preview": "vite preview",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",

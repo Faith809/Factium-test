@@ -53,7 +53,7 @@ const safeFetch = async (url: string, options: any) => {
     return {
       error: true,
       type: 'NETWORK',
-      message: err.message || 'Unknown network error'
+      message: 'Connection Blocked: Please check Internet or CORS settings.'
     };
   }
 };

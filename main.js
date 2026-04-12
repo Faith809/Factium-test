@@ -80,6 +80,9 @@ async function createWindow() {
     autoHideMenuBar: true
   });
 
+  // Open DevTools for debugging packaged apps
+  mainWindow.webContents.openDevTools();
+
   const isDev = !app.isPackaged;
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
