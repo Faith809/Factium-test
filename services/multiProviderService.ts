@@ -1,5 +1,6 @@
 import { ProviderConfig, AIProviderId, DetailedResearchResponse, ResearchMode, LanguageCode, AIModelId } from "../types";
 import { languageNames } from "./i18n";
+import { safeParseJson } from "./jsonUtils";
 
 const getVault = (): ProviderConfig => {
   try {
@@ -266,12 +267,7 @@ export const forensicResearch = async (query: string, mode: ResearchMode, modelI
     system: "You are a total discovery assistant. You never give blank answers. You always provide 15 results for every list requested. You ensure all links are clickable and lead to real sources." 
   });
   
-  let parsed: any = {};
-  try {
-    parsed = JSON.parse(response.text || "{}");
-  } catch (e) {
-    console.error("JSON Parse Error:", e);
-  }
+  const parsed = safeParseJson(response.text);
 
   // Ensure arrays have at least 15 items or are filled with placeholders
   const ensure15 = (arr: any[], filler: (i: number) => any) => {

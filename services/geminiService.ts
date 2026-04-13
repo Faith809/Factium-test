@@ -2,6 +2,7 @@
 import { UserProfile, AIModelId, BiasMetric, PolicyImpact, FinanceTrackerResponse, LanguageCode, ResearchMode } from "../types";
 import { languageNames } from "./i18n";
 import { callAI } from "./multiProviderService";
+import { safeParseJson } from "./jsonUtils";
 
 const getActiveLanguage = (): LanguageCode => (localStorage.getItem('factium_lang') as LanguageCode) || 'en';
 
@@ -45,7 +46,7 @@ export const analyzeBias = async (text: string, modelId: AIModelId, mode: string
     const textOutput = response.text;
     if (!textOutput) throw new Error("Empty AI Response");
     
-    const parsed = JSON.parse(textOutput);
+    const parsed = safeParseJson(textOutput);
 
     const ensureCount = (arr: any[], count: number, filler: (i: number) => any) => {
         const list = Array.isArray(arr) ? arr : [];
@@ -110,7 +111,7 @@ export const simulatePolicy = async (policy: string, profile: UserProfile, model
       system: systemInstruction
     });
 
-    const parsed = JSON.parse(response.text || "{}");
+    const parsed = safeParseJson(response.text);
     
     const ensureCount = (arr: any[], count: number, filler: (i: number) => any) => {
       const list = Array.isArray(arr) ? arr : [];
@@ -188,7 +189,7 @@ export const trackCampaignFinance = async (query: string, modelId: AIModelId, at
       system: systemInstruction
     });
 
-    const parsed = JSON.parse(response.text || "{}");
+    const parsed = safeParseJson(response.text);
 
     const ensureCount = (arr: any[], count: number, filler: (i: number) => any) => {
       const list = Array.isArray(arr) ? arr : [];
