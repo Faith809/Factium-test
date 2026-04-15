@@ -41,6 +41,8 @@ const FactChecker: React.FC<FactCheckerProps> = ({ onBack, onHome, onGuide, onAd
     setLoading(true);
     setMetric(null);
     try {
+      // Add delay to prevent parallel requests and rate limiting
+      await new Promise(r => setTimeout(r, 1500));
       const data = await analyzeBias(text, selectedModel, mode, attachments);
       setMetric(data);
       // Ensure we don't default to a restricted tab

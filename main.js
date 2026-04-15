@@ -1,8 +1,8 @@
-
-import { app, BrowserWindow, ipcMain, net } from 'electron';
+import { app, BrowserWindow, ipcMain, net, session } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { fork } from 'child_process';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +35,11 @@ ipcMain.handle('electron-fetch', async (event, { url, options }) => {
 
 function startBackend() {
   const backendPath = path.join(__dirname, 'backend', 'server.js');
+  if (!fs.existsSync(backendPath)) {
+    console.warn('Backend server script not found at:', backendPath);
+    return;
+  }
+  
   backendProcess = fork(backendPath, [], {
     stdio: 'inherit',
     env: { ...process.env, NODE_ENV: app.isPackaged ? 'production' : 'development' }
@@ -58,10 +63,13 @@ async function createWindow() {
   // FORCE CLEAN START: Clear session data to prevent "Cache Loops" or "PWA Shielding"
   // This programmatically does what "deleting %AppData%" does manually.
   if (app.isPackaged) {
-    const { session } = await import('electron');
-    await session.defaultSession.clearStorageData();
-    await session.defaultSession.clearCache();
-    console.log('Production: Session and Cache cleared for fresh start.');
+    try {
+      await session.defaultSession.clearStorageData();
+      await session.defaultSession.clearCache();
+      console.log('Production: Session and Cache cleared for fresh start.');
+    } catch (e) {
+      console.error('Failed to clear session data:', e);
+    }
   }
 
   mainWindow = new BrowserWindow({
@@ -74,7 +82,7 @@ async function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.cjs')
     },
     title: "Factium AI",
     autoHideMenuBar: true

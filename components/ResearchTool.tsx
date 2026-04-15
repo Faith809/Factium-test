@@ -45,6 +45,8 @@ const ResearchTool: React.FC<{onBack: () => void; onHome: () => void; onGuide: (
     setResult(null);
     setActiveModule(null);
     try {
+      // Add delay to prevent parallel requests and rate limiting
+      await new Promise(r => setTimeout(r, 1500));
       const response = await forensicResearch(query, mode, selectedModel, attachments);
       setResult(response);
       

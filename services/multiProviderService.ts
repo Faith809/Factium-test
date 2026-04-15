@@ -14,12 +14,45 @@ const getVault = (): ProviderConfig => {
   return { activeProvider: 'google', keys: {} };
 };
 
-// Safe fetch wrapper for Electron/Web with robust error handling
-const safeFetch = async (url: string, options: any) => {
+// Helper for rate limit protection with exponential backoff
+const fetchWithRetry = async (url: string, options: any, retries = 3, delay = 2000): Promise<any> => {
   try {
     // If running in Electron and exposed via preload
     if ((window as any).electronAPI?.fetch) {
       const res = await (window as any).electronAPI.fetch(url, options);
+      if (res.status === 429 && retries > 0) {
+        console.warn(`Rate limit hit (429). Retrying in ${delay}ms... (${retries} retries left)`);
+        await new Promise(r => setTimeout(r, delay));
+        return fetchWithRetry(url, options, retries - 1, delay * 2);
+      }
+      return res;
+    }
+    
+    // Standard web fetch
+    const response = await fetch(url, options);
+    if (response.status === 429 && retries > 0) {
+      console.warn(`Rate limit hit (429). Retrying in ${delay}ms... (${retries} retries left)`);
+      await new Promise(r => setTimeout(r, delay));
+      return fetchWithRetry(url, options, retries - 1, delay * 2);
+    }
+    return response;
+  } catch (err) {
+    if (retries > 0) {
+      console.warn(`Fetch failed. Retrying in ${delay}ms... (${retries} retries left)`, err);
+      await new Promise(r => setTimeout(r, delay));
+      return fetchWithRetry(url, options, retries - 1, delay * 2);
+    }
+    throw err;
+  }
+};
+
+// Safe fetch wrapper for Electron/Web with robust error handling
+const safeFetch = async (url: string, options: any) => {
+  try {
+    const res = await fetchWithRetry(url, options);
+    
+    // Handle Electron response format
+    if ((window as any).electronAPI?.fetch) {
       if (!res.ok) {
         return {
           error: true,
@@ -39,17 +72,16 @@ const safeFetch = async (url: string, options: any) => {
       };
     }
     
-    // Standard web fetch
-    const response = await fetch(url, options);
-    if (!response.ok) {
+    // Handle standard fetch response
+    if (!res.ok) {
       return {
         error: true,
         type: 'NETWORK',
-        status: response.status,
-        message: `Network error: ${response.status}`
+        status: res.status,
+        message: `Network error: ${res.status}`
       };
     }
-    return response;
+    return res;
   } catch (err: any) {
     return {
       error: true,
@@ -86,9 +118,11 @@ export const getAllProviders = () => {
   return [...providers, ...customOnes];
 };
 
+const VERCEL_PROXY_URL = import.meta.env.VITE_VERCEL_PROXY_URL || 'https://YOUR_VERCEL_URL_HERE/api/proxy';
+
 export const callAI = async (prompt: string, options: { json?: boolean, system?: string, modelId?: AIModelId, attachments?: any[] } = {}) => {
   const vault = getVault();
-  const provider = options.modelId || vault.activeProvider;
+  const providerId = options.modelId || vault.activeProvider;
   const lang = getActiveLanguage();
   const langName = languageNames[lang];
   
@@ -96,153 +130,75 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
   const toneInstruction = " IMPORTANT: Use very simple, relatable, and relaxing language. Avoid technical words. Be mature and clear.";
   const finalSystem = (options.system || "You are a helpful assistant.") + toneInstruction + (lang !== 'en' ? ` Provide all text output exclusively in ${langName}.` : "");
 
-  // Prepare parts for Gemini
-  const parts: any[] = [{ text: prompt }];
-  
+  let provider = 'gemini';
+  let model = 'gemini-1.5-flash';
+  let apiKey = '';
+
+  if (providerId === 'google' || providerId === 'factium-native' || providerId === 'gemini-1.5-flash') {
+    provider = 'gemini';
+    model = 'gemini-1.5-flash';
+    apiKey = vault.keys['google'] || vault.keys['factium-native'] || vault.keys['gemini-1.5-flash'] || '';
+  } else if (providerId === 'openai' || providerId === 'gpt-4o') {
+    provider = 'openai';
+    model = 'gpt-4o';
+    apiKey = vault.keys['openai'] || vault.keys['gpt-4o'] || '';
+  } else if (providerId === 'anthropic') {
+    provider = 'anthropic';
+    model = 'claude-3-5-sonnet-20240620';
+    apiKey = vault.keys['anthropic'] || '';
+  } else if (providerId.startsWith('custom-')) {
+    const custom = vault.customProviders?.find(cp => cp.id === providerId);
+    if (custom) {
+      provider = 'openai'; // Most custom endpoints follow OpenAI format
+      model = custom.modelId;
+      apiKey = custom.apiKey || vault.keys[custom.id] || '';
+    }
+  }
+
+  if (!apiKey) throw new Error(`MISSING_KEY_${provider}`);
+
+  // Prepare attachments for proxy
+  const proxyAttachments: any[] = [];
   if (options.attachments) {
     options.attachments.forEach(att => {
-      if (att.type.startsWith('image/')) {
-        const base64Data = att.data.split(',')[1];
-        parts.push({
-          inlineData: {
-            mimeType: att.type,
-            data: base64Data
-          }
-        });
-      } else {
-        if (att.data.startsWith('data:text/') || att.data.startsWith('data:application/json')) {
-          try {
-            const base64Data = att.data.split(',')[1];
-            const decodedText = atob(base64Data);
-            parts.push({ text: `\n\nContent of attached file "${att.name}":\n${decodedText}` });
-          } catch (e) {
-            parts.push({ text: `\n\n(Attached file: ${att.name} - content could not be parsed)` });
-          }
+      if (provider === 'gemini') {
+        if (att.type.startsWith('image/')) {
+          proxyAttachments.push({
+            inlineData: {
+              mimeType: att.type,
+              data: att.data.split(',')[1]
+            }
+          });
         } else {
-          parts.push({ text: `\n\n(Attached file: ${att.name} - binary content)` });
+          proxyAttachments.push({ text: `\n\nContent of attached file "${att.name}":\n${att.data}` });
+        }
+      } else if (provider === 'openai') {
+        if (att.type.startsWith('image/')) {
+          proxyAttachments.push({ type: "image_url", image_url: { url: att.data } });
+        } else {
+          proxyAttachments.push({ type: "text", text: `\n\nContent of attached file "${att.name}":\n${att.data}` });
         }
       }
     });
   }
 
-  switch (provider) {
-    case 'google':
-    case 'factium-native':
-    case 'gemini-3-pro-preview':
-      const googleKey = vault.keys['google'] || vault.keys['factium-native'] || vault.keys['gemini-3-pro-preview'];
-      if (!googleKey) throw new Error("MISSING_KEY_google");
-      
-      const geminiModel = provider === 'gemini-3-pro-preview' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${googleKey}`;
-      
-      const geminiRes = await safeFetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts }],
-          system_instruction: { parts: [{ text: finalSystem }] },
-          generation_config: {
-            response_mime_type: options.json ? "application/json" : "text/plain",
-          },
-          tools: [{ google_search: {} }]
-        })
-      });
+  const res = await safeFetch(VERCEL_PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      provider,
+      model,
+      apiKey,
+      prompt,
+      system: finalSystem,
+      json: options.json,
+      attachments: proxyAttachments
+    })
+  });
 
-      if ((geminiRes as any).error) {
-        throw geminiRes;
-      }
-
-      const geminiData = await (geminiRes as any).json();
-      const geminiText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      return { text: geminiText, raw: geminiData, candidates: geminiData.candidates };
-
-    case 'openai':
-    case 'gpt-4o':
-      const openaiKey = vault.keys['openai'] || vault.keys['gpt-4o'];
-      if (!openaiKey) throw new Error("MISSING_KEY_openai");
-      
-      const openaiMessages: any[] = [
-        { role: "system", content: finalSystem }
-      ];
-
-      const userContent: any[] = [{ type: "text", text: prompt }];
-      
-      if (options.attachments) {
-        options.attachments.forEach(att => {
-          if (att.type.startsWith('image/')) {
-            userContent.push({
-              type: "image_url",
-              image_url: { url: att.data }
-            });
-          } else if (att.data.startsWith('data:text/')) {
-            const base64Data = att.data.split(',')[1];
-            const decodedText = atob(base64Data);
-            userContent.push({ type: "text", text: `\n\nContent of attached file "${att.name}":\n${decodedText}` });
-          }
-        });
-      }
-
-      openaiMessages.push({ role: "user", content: userContent });
-
-      const resOpenAI = await safeFetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: openaiMessages,
-          response_format: options.json ? { type: "json_object" } : undefined
-        })
-      });
-      if ((resOpenAI as any).error) throw resOpenAI;
-      const dataOpenAI = await (resOpenAI as any).json();
-      return { text: dataOpenAI.choices[0].message.content, raw: dataOpenAI };
-
-    default:
-      if (provider.startsWith('custom-')) {
-        const custom = vault.customProviders?.find(cp => cp.id === provider);
-        if (!custom) throw new Error("CUSTOM_PROVIDER_NOT_FOUND");
-        const customKey = custom.apiKey || vault.keys[custom.id];
-        if (!customKey) throw new Error(`MISSING_KEY_${custom.id}`);
-        
-        const resCustom = await safeFetch(custom.endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${customKey}` },
-          body: JSON.stringify({
-            model: custom.modelId,
-            messages: [
-              { role: "system", content: finalSystem },
-              { role: "user", content: prompt }
-            ],
-            response_format: options.json ? { type: "json_object" } : undefined
-          })
-        });
-        if ((resCustom as any).error) throw resCustom;
-        const dataCustom = await (resCustom as any).json();
-        return { text: dataCustom.choices[0].message.content, raw: dataCustom };
-      }
-      
-      // Fallback to google if unknown, but still require key
-      const fallbackKey = vault.keys['google'];
-      if (!fallbackKey) throw new Error("MISSING_KEY_google");
-      
-      const fbUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${fallbackKey}`;
-      const fbRes = await safeFetch(fbUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          system_instruction: { parts: [{ text: finalSystem }] },
-          generation_config: {
-            response_mime_type: options.json ? "application/json" : "text/plain",
-          },
-          tools: [{ google_search: {} }]
-        })
-      });
-
-      if ((fbRes as any).error) throw fbRes;
-      const fbData = await (fbRes as any).json();
-      return { text: fbData.candidates?.[0]?.content?.parts?.[0]?.text || "", raw: fbData, candidates: fbData.candidates };
-  }
+  if ((res as any).error) throw res;
+  const data = await (res as any).json();
+  return { text: data.text, raw: data.raw };
 };
 
 export const forensicResearch = async (query: string, mode: ResearchMode, modelId?: AIModelId, attachments?: any[]): Promise<DetailedResearchResponse> => {

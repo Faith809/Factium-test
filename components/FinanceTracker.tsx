@@ -34,6 +34,8 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
     setLoading(true);
     setResult(null);
     try {
+      // Add delay to prevent parallel requests and rate limiting
+      await new Promise(r => setTimeout(r, 1500));
       const data = await trackCampaignFinance(query, selectedModel, attachments);
       setResult(data);
       setActiveTab('analysis');

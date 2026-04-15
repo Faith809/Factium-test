@@ -66,6 +66,8 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
     setLoading(true);
     setImpact(null);
     try {
+      // Add delay to prevent parallel requests and rate limiting
+      await new Promise(r => setTimeout(r, 1500));
       const result = await simulatePolicy(policy, selectedVaultProfile, selectedModel, attachments);
       setImpact(result);
       setActiveTab('analysis');
