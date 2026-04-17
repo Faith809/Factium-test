@@ -15,13 +15,14 @@ const getVault = (): ProviderConfig => {
 };
 
 // Helper for rate limit protection with exponential backoff
-const fetchWithRetry = async (url: string, options: any, retries = 3, delay = 2000): Promise<any> => {
+const fetchWithRetry = async (url: string, options: any, retries = 3, delay = 1500): Promise<any> => {
   try {
     // If running in Electron and exposed via preload
     if ((window as any).electronAPI?.fetch) {
       const res = await (window as any).electronAPI.fetch(url, options);
-      if (res.status === 429 && retries > 0) {
-        console.warn(`Rate limit hit (429). Retrying in ${delay}ms... (${retries} retries left)`);
+      // Handle 429 (Rate Limit) or 5xx/Network failures as "Search failed" candidates
+      if ((res.status === 429 || res.status >= 500) && retries > 0) {
+        console.warn(`Request failed or rate limited (${res.status}). Retrying in ${delay}ms... (${retries} retries left)`);
         await new Promise(r => setTimeout(r, delay));
         return fetchWithRetry(url, options, retries - 1, delay * 2);
       }
@@ -30,15 +31,15 @@ const fetchWithRetry = async (url: string, options: any, retries = 3, delay = 20
     
     // Standard web fetch
     const response = await fetch(url, options);
-    if (response.status === 429 && retries > 0) {
-      console.warn(`Rate limit hit (429). Retrying in ${delay}ms... (${retries} retries left)`);
+    if ((response.status === 429 || response.status >= 500) && retries > 0) {
+      console.warn(`Request failed or rate limited (${response.status}). Retrying in ${delay}ms... (${retries} retries left)`);
       await new Promise(r => setTimeout(r, delay));
       return fetchWithRetry(url, options, retries - 1, delay * 2);
     }
     return response;
   } catch (err) {
     if (retries > 0) {
-      console.warn(`Fetch failed. Retrying in ${delay}ms... (${retries} retries left)`, err);
+      console.warn(`Fetch encounterd a physical block. Retrying in ${delay}ms... (${retries} retries left)`, err);
       await new Promise(r => setTimeout(r, delay));
       return fetchWithRetry(url, options, retries - 1, delay * 2);
     }
@@ -159,6 +160,8 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
 
   // Prepare attachments for proxy
   const proxyAttachments: any[] = [];
+  let attachmentContext = "";
+
   if (options.attachments) {
     options.attachments.forEach(att => {
       if (provider === 'gemini') {
@@ -178,9 +181,14 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
         } else {
           proxyAttachments.push({ type: "text", text: `\n\nContent of attached file "${att.name}":\n${att.data}` });
         }
+      } else if (provider === 'anthropic') {
+        // Claude Proxy currently handles text-based attachments via prompt injection to avoid complex multi-modal payload conversion in proxy
+        attachmentContext += `\n\n[Attached File: ${att.name}]\n${att.data}\n`;
       }
     });
   }
+
+  const finalPrompt = prompt + attachmentContext;
 
   const res = await safeFetch(VERCEL_PROXY_URL, {
     method: 'POST',
@@ -189,7 +197,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
       provider,
       model,
       apiKey,
-      prompt,
+      prompt: finalPrompt,
       system: finalSystem,
       json: options.json,
       attachments: proxyAttachments
