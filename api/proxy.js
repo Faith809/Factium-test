@@ -9,18 +9,21 @@ module.exports = async (req, res) => {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
+  if (req.method !== 'POST' && req.method !== 'OPTIONS') {
+    return res.status(200).send('Messenger is active and waiting for a POST request.');
+  }
+
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  const { provider, model, apiKey, prompt, system, json, attachments } = req.body;
-
-  if (!apiKey) {
-    return res.status(400).json({ error: 'Missing API Key' });
-  }
-
   try {
+    const { provider, model, apiKey, prompt, system, json, attachments } = req.body || {};
+
+    if (!apiKey) {
+      return res.status(400).json({ error: 'Missing API Key' });
+    }
     let response;
     let data;
 

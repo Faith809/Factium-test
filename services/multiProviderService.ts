@@ -119,9 +119,15 @@ export const getAllProviders = () => {
   return [...providers, ...customOnes];
 };
 
-const VERCEL_PROXY_URL = import.meta.env.VITE_VERCEL_PROXY_URL || 'https://YOUR_VERCEL_URL_HERE/api/proxy';
+const VERCEL_PROXY_URL = import.meta.env.VITE_VERCEL_PROXY_URL || 'https://factium-test.vercel.app/api/proxy';
 
 export const callAI = async (prompt: string, options: { json?: boolean, system?: string, modelId?: AIModelId, attachments?: any[] } = {}) => {
+  if (!VERCEL_PROXY_URL || VERCEL_PROXY_URL.includes('YOUR_VERCEL_URL_HERE')) {
+    alert('Proxy URL is not configured. Please set VITE_VERCEL_PROXY_URL in environment variables and Sync to GitHub.');
+    throw new Error('PROXY_URL_MISSING');
+  }
+
+  console.log('Sending request to proxy:', VERCEL_PROXY_URL);
   const vault = getVault();
   const providerId = options.modelId || vault.activeProvider;
   const lang = getActiveLanguage();
@@ -192,6 +198,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
 
   const res = await safeFetch(VERCEL_PROXY_URL, {
     method: 'POST',
+    mode: 'cors',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       provider,
