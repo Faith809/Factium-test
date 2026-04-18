@@ -50,11 +50,13 @@ const fetchWithRetry = async (url: string, options: any, retries = 3, delay = 15
 // Safe fetch wrapper for Electron/Web with robust error handling
 const safeFetch = async (url: string, options: any) => {
   try {
+    console.log(`[SafeFetch] Initializing request to: ${url}`);
     const res = await fetchWithRetry(url, options);
     
-    // Handle Electron response format
-    if ((window as any).electronAPI?.fetch) {
+    // Handle Electron response format (if it returns a custom object via IPC)
+    if (res && typeof res === 'object' && 'data' in res && !('json' in res)) {
       if (!res.ok) {
+        console.error(`[SafeFetch] Electron Fetch failed: ${res.status}`, res.error);
         return {
           error: true,
           type: 'NETWORK',
@@ -75,6 +77,8 @@ const safeFetch = async (url: string, options: any) => {
     
     // Handle standard fetch response
     if (!res.ok) {
+      const errorText = await res.text().catch(() => 'No extra error info');
+      console.error(`[SafeFetch] Standard Fetch failed: ${res.status}`, errorText);
       return {
         error: true,
         type: 'NETWORK',
@@ -84,10 +88,11 @@ const safeFetch = async (url: string, options: any) => {
     }
     return res;
   } catch (err: any) {
+    console.error('[SafeFetch] CRITICAL NETWORK FAIL:', err);
     return {
       error: true,
       type: 'NETWORK',
-      message: 'The Vercel Messenger is blocked. Check Vercel logs for CORS errors.'
+      message: `The Vercel Messenger is blocked (${err.message}). Check Vercel logs for CORS errors.`
     };
   }
 };
@@ -119,15 +124,19 @@ export const getAllProviders = () => {
   return [...providers, ...customOnes];
 };
 
-const RAW_PROXY_URL = import.meta.env.VITE_VERCEL_PROXY_URL || 'https://factium-test.vercel.app/api/proxy';
+const RAW_PROXY_URL = import.meta.env.VITE_VERCEL_PROXY_URL || '';
 // Sanitize URL: Remove trailing slash and append /api/proxy if it's missing the path
-const VERCEL_PROXY_URL = RAW_PROXY_URL.replace(/\/$/, "").endsWith('/api/proxy') 
-  ? RAW_PROXY_URL.replace(/\/$/, "") 
-  : `${RAW_PROXY_URL.replace(/\/$/, "")}/api/proxy`;
+const VERCEL_PROXY_URL = RAW_PROXY_URL 
+  ? (RAW_PROXY_URL.replace(/\/$/, "").endsWith('/api/proxy') 
+      ? RAW_PROXY_URL.replace(/\/$/, "") 
+      : `${RAW_PROXY_URL.replace(/\/$/, "")}/api/proxy`)
+  : '';
 
 export const callAI = async (prompt: string, options: { json?: boolean, system?: string, modelId?: AIModelId, attachments?: any[] } = {}) => {
   if (!VERCEL_PROXY_URL || VERCEL_PROXY_URL.includes('YOUR_VERCEL_URL_HERE')) {
-    alert('Proxy URL is not configured. Please set VITE_VERCEL_PROXY_URL in environment variables and Sync to GitHub.');
+    console.warn('[CallAI] Proxy URL is not configured. Falling back to direct mode for preview safety.');
+    // In preview mode or if no proxy, we should inform the user
+    alert('CRITICAL: Proxy URL is not set. Go to Settings > Environment Variables in AI Studio and set VITE_VERCEL_PROXY_URL to your Vercel address.');
     throw new Error('PROXY_URL_MISSING');
   }
 

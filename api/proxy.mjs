@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     let data;
 
     if (provider === 'gemini' || provider === 'google') {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-1.5-flash'}:generateContent?key=${apiKey}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/${model || 'gemini-1.5-flash'}:generateContent?key=${apiKey}`;
       
       const body = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
