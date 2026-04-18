@@ -87,7 +87,7 @@ const safeFetch = async (url: string, options: any) => {
     return {
       error: true,
       type: 'NETWORK',
-      message: 'Connection Blocked: Please check Internet or CORS settings.'
+      message: 'The Vercel Messenger is blocked. Check Vercel logs for CORS errors.'
     };
   }
 };
@@ -119,7 +119,11 @@ export const getAllProviders = () => {
   return [...providers, ...customOnes];
 };
 
-const VERCEL_PROXY_URL = import.meta.env.VITE_VERCEL_PROXY_URL || 'https://factium-test.vercel.app/api/proxy';
+const RAW_PROXY_URL = import.meta.env.VITE_VERCEL_PROXY_URL || 'https://factium-test.vercel.app/api/proxy';
+// Sanitize URL: Remove trailing slash and append /api/proxy if it's missing the path
+const VERCEL_PROXY_URL = RAW_PROXY_URL.replace(/\/$/, "").endsWith('/api/proxy') 
+  ? RAW_PROXY_URL.replace(/\/$/, "") 
+  : `${RAW_PROXY_URL.replace(/\/$/, "")}/api/proxy`;
 
 export const callAI = async (prompt: string, options: { json?: boolean, system?: string, modelId?: AIModelId, attachments?: any[] } = {}) => {
   if (!VERCEL_PROXY_URL || VERCEL_PROXY_URL.includes('YOUR_VERCEL_URL_HERE')) {
@@ -199,6 +203,7 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
   const res = await safeFetch(VERCEL_PROXY_URL, {
     method: 'POST',
     mode: 'cors',
+    credentials: 'omit',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       provider,

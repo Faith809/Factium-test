@@ -1,5 +1,5 @@
 // Native fetch is available in Node 18+ on Vercel
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,13 +9,15 @@ module.exports = async (req, res) => {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
-  if (req.method !== 'POST' && req.method !== 'OPTIONS') {
-    return res.status(200).send('Messenger is active and waiting for a POST request.');
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(200).end();
   }
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+  if (req.method !== 'POST') {
+    return res.status(200).send('Messenger is active and waiting for a POST request. Factium AI Proxy v1.3.5 OK.');
   }
 
   try {
@@ -131,4 +133,4 @@ module.exports = async (req, res) => {
     console.error('Proxy Error:', error);
     return res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }
-};
+}

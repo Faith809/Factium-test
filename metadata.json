@@ -1,5 +1,5 @@
 {
-  "name": " Factium AI v6",
+  "name": "Factium AI",
   "description": "An elite AI-powered research terminal, policy impact forecaster, and fact-checking suite. Designed for deep political and economic analysis with real-time web grounding and personalized impact modeling.",
   "requestFramePermissions": [
     "display-capture",
