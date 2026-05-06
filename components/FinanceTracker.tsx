@@ -48,8 +48,12 @@ const FinanceTracker: React.FC<FinanceTrackerProps> = ({ onBack, onHome, onGuide
         timestamp: Date.now(),
         imported: true
       });
-    } catch (e) {
-      alert("Tracking failed. Please try again.");
+    } catch (e: any) {
+      if (e.type === 'RATE_LIMIT') {
+        alert("Rate limit reached. Please wait a minute or use a different key in settings.");
+      } else {
+        alert("Tracking failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

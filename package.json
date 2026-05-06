@@ -1,7 +1,7 @@
 {
   "name": "lates-factium-ai-v3",
   "private": true,
-  "version": "1.4.6",
+  "version": "1.4.9",
   "description": "Factium AI - Advanced Fact-Checking and Bias Analysis",
   "author": "Factium AI Team",
   "main": "main.js",

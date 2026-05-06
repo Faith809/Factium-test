@@ -58,9 +58,13 @@ const ResearchTool: React.FC<{onBack: () => void; onHome: () => void; onGuide: (
         timestamp: Date.now(),
         imported: true
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Search failed. Our helpers are taking a short break. Please try again.");
+      if (e.type === 'RATE_LIMIT') {
+        alert("Rate limit reached. Please wait a minute or use a different key in settings.");
+      } else {
+        alert("Search failed. Our helpers are taking a short break. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

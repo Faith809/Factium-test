@@ -10,7 +10,7 @@ interface Props {
 
 const DEFAULT_MODELS: AIModel[] = [
   // Free Models
-  { id: 'factium-native', name: 'Factium Native (Gemini Flash)', type: 'Free' },
+  { id: 'factium-native', name: 'Factium Native (Gemini 2.0 Flash)', type: 'Free' },
   { id: 'deepseek-r1', name: 'DeepSeek R1 (Simulated)', type: 'Free' },
   { id: 'nolimit-gpt-free', name: 'NoLimitGPT (Free/Unfiltered)', type: 'Free' },
   { id: 'llama-3-unfiltered', name: 'Llama 3 AI (Unfiltered)', type: 'Free' },

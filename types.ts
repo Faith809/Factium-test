@@ -1,6 +1,6 @@
 
 // Centralized type definitions for the Factium Intelligence platform
-export type AIProviderId = 'google' | 'openai' | 'anthropic' | 'huggingface' | 'cohere' | 'custom';
+export type AIProviderId = 'google' | 'openai' | 'anthropic' | 'huggingface' | 'cohere' | 'custom' | 'local';
 
 export type LanguageCode = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'ja' | 'ru' | 'pt' | 'ar' | 'hi' | 'it' | 'ko' | 'tr' | 'vi' | 'id';
 
@@ -51,7 +51,8 @@ export enum AppView {
   FINANCE_TRACKER = 'FINANCE_TRACKER',
   MY_MODELS = 'MY_MODELS',
   ABOUT = 'ABOUT',
-  PROFILE = 'PROFILE'
+  PROFILE = 'PROFILE',
+  LOCAL_ENGINE = 'LOCAL_ENGINE'
 }
 
 export enum ResearchMode {

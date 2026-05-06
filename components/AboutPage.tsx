@@ -109,7 +109,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onBack, onHome, onGuide, language
                             </li>
                             <li className="flex gap-4">
                                 <span className="font-black text-xl opacity-40">03</span>
-                                <span>Peer-to-peer truth grounding via consensus mechanisms.</span>
+                                <span>Transition to Local-First AI Search Engine (Ollama integration) for 100% privacy and zero server latency.</span>
                             </li>
                         </ul>
                     </div>

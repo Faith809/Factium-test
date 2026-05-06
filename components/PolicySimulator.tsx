@@ -80,6 +80,12 @@ const PolicySimulator: React.FC<Props> = ({ userProfile: initialProfile, onBack,
         timestamp: Date.now(),
         imported: true
       });
+    } catch (e: any) {
+      if (e.type === 'RATE_LIMIT') {
+        alert("Rate limit reached. Please wait a minute or use a different key in settings.");
+      } else {
+        alert("Simulation failed. Please check your connection or key.");
+      }
     } finally {
       setLoading(false);
     }

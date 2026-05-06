@@ -77,6 +77,15 @@ const Dashboard: React.FC<DashboardProps> = ({
       color: "bg-blue-500"
     },
     {
+      id: AppView.LOCAL_ENGINE,
+      title: t.nav.local,
+      desc: "Private forensic intelligence using your own hardware.",
+      icon: <IconCpu className="w-6 h-6" />,
+      tag: "OFFLINE",
+      image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600&h=400&fit=crop",
+      color: "bg-green-600"
+    },
+    {
       id: AppView.MY_MODELS,
       title: t.nav.models,
       desc: t.models.subtitle,

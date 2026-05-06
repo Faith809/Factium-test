@@ -71,18 +71,21 @@ export const analyzeBias = async (text: string, modelId: AIModelId, mode: string
   } catch (error: any) {
     console.error("Bias Analysis Failed:", error);
     const isMissingKey = error.message?.includes("MISSING_KEY");
+    const isRateLimit = error.type === 'RATE_LIMIT';
     const isNetwork = error.type === 'NETWORK';
     
     return {
       score: 50,
-      label: isMissingKey ? "Missing API Key" : (isNetwork ? "Network Error" : "Check Failed"),
+      label: isMissingKey ? "Missing API Key" : (isRateLimit ? "Rate Limit Reached" : (isNetwork ? "Network Error" : "Check Failed")),
       reasoning: isMissingKey 
         ? "Please enter your API key in the recalibrate settings." 
-        : (isNetwork ? "We're having trouble connecting to the neural network. Please check your internet." : "We couldn't read the story correctly right now. Please try again later."),
+        : (isRateLimit ? "Your Gemini API key has hit its limit. Please wait a moment or use a different key." : (isNetwork ? "We're having trouble connecting to the neural network. Please check your internet." : "We couldn't read the story correctly right now. Please try again later.")),
       omittedPoints: ["Connection check", "Please refresh"],
-      forensicExplanation: isNetwork 
-        ? "A network interruption occurred. This is common in packaged environments if the connection is unstable or blocked by a firewall."
-        : "The tool had a small problem finding the answer.\n\nThis usually happens if your API key is missing or invalid.\n\nPlease check your settings and try again.",
+      forensicExplanation: isRateLimit
+        ? "Google's free tier has a limit on how many requests can be made per minute/day. To continue, you can wait about 60 seconds or switch to a paid API key in settings."
+        : (isNetwork 
+          ? "A network interruption occurred. This is common in packaged environments if the connection is unstable or blocked by a firewall."
+          : "The tool had a small problem finding the answer.\n\nThis usually happens if your API key is missing or invalid.\n\nPlease check your settings and try again."),
       findingsSources: [],
       referenceSources: [],
       controversies: []
@@ -151,6 +154,7 @@ export const simulatePolicy = async (policy: string, profile: UserProfile, model
   } catch (error: any) {
     console.error("Policy Simulation Failed:", error);
     const isMissingKey = error.message?.includes("MISSING_KEY");
+    const isRateLimit = error.type === 'RATE_LIMIT';
     const isNetwork = error.type === 'NETWORK';
     
     return {
@@ -158,10 +162,12 @@ export const simulatePolicy = async (policy: string, profile: UserProfile, model
       socialScore: 0,
       personalImpactSummary: isMissingKey 
         ? "Missing API Key. Please recalibrate in settings." 
-        : (isNetwork ? "Network connection failed. Please check your internet." : "Simulation failed. Please check your connection or API key."),
-      forensicExplanation: isNetwork
-        ? "The simulation was interrupted by a network error. Please ensure you have a stable connection."
-        : "We encountered an error while processing your request.\n\nThis usually happens if your API key is invalid or if there's a network problem.\n\nPlease verify your settings and try again.",
+        : (isRateLimit ? "Rate limit reached. Please wait a minute." : (isNetwork ? "Network connection failed. Please check your internet." : "Simulation failed. Please check your connection or API key.")),
+      forensicExplanation: isRateLimit
+        ? "The API key reached its quota. Try again in 60 seconds or switch keys in 'MY DETAILS'."
+        : (isNetwork
+          ? "The simulation was interrupted by a network error. Please ensure you have a stable connection."
+          : "We encountered an error while processing your request.\n\nThis usually happens if your API key is invalid or if there's a network problem.\n\nPlease verify your settings and try again."),
       newsPredictions: [],
       socialDiscourse: [],
       referenceSources: [],
@@ -232,13 +238,16 @@ export const trackCampaignFinance = async (query: string, modelId: AIModelId, at
   } catch (error: any) {
     console.error("Finance Tracking Failed:", error);
     const isMissingKey = error.message?.includes("MISSING_KEY");
+    const isRateLimit = error.type === 'RATE_LIMIT';
     const isNetwork = error.type === 'NETWORK';
     
     return {
-      summary: isMissingKey ? "Missing API Key" : (isNetwork ? "Network Error" : "Tracking Error"),
-      forensicExplanation: isNetwork
-        ? "The finance tracker lost connection to the data stream. Please check your internet connection."
-        : "The finance tracker could not retrieve data at this time.\n\nPlease ensure your API key is correctly configured in the setup wizard.\n\nIf the problem persists, check your internet connection.",
+      summary: isMissingKey ? "Missing API Key" : (isRateLimit ? "Rate Limit Reached" : (isNetwork ? "Network Error" : "Tracking Error")),
+      forensicExplanation: isRateLimit
+        ? "Your API key has reached its quota limit. Please wait a moment before trying again."
+        : (isNetwork
+          ? "The finance tracker lost connection to the data stream. Please check your internet connection."
+          : "The finance tracker could not retrieve data at this time.\n\nPlease ensure your API key is correctly configured in the setup wizard.\n\nIf the problem persists, check your internet connection."),
       donors: [],
       socialMediaFeed: [],
       newsFeed: [],

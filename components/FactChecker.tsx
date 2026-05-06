@@ -56,9 +56,13 @@ const FactChecker: React.FC<FactCheckerProps> = ({ onBack, onHome, onGuide, onAd
         timestamp: Date.now(),
         imported: true
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Analysis sequence failed. Neural links are unstable.");
+      if (e.type === 'RATE_LIMIT') {
+        alert("Rate limit reached. Please wait a minute or use a different key in settings.");
+      } else {
+        alert("Analysis sequence failed. Neural links are unstable.");
+      }
     } finally {
       setLoading(false);
     }

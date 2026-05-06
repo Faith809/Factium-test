@@ -18,6 +18,7 @@ export interface TranslationSet {
     policy: string;
     finance: string;
     models: string;
+    local: string;
     profile: string;
     about: string;
   };
@@ -225,7 +226,7 @@ const enSet = generateSet({
   explore: "Start Learning",
   manifesto: "Our Story",
   activeSeekers: "People Here",
-  nav: { research: "Topic Search", factChecker: "Check the Facts", policy: "Future Look", finance: "Money Tracker", models: "Smart Tools", profile: "My Details", about: "Our Story" },
+  nav: { research: "Topic Search", factChecker: "Check the Facts", policy: "Future Look", finance: "Money Tracker", models: "Smart Tools", local: "Local Engine", profile: "My Details", about: "Our Story" },
     setup: { 
       language: "Language", 
       engine: "Start Up", 
@@ -358,7 +359,7 @@ export const translations: Record<LanguageCode, TranslationSet> = {
     explore: "Empezar",
     manifesto: "Nuestra Historia",
     activeSeekers: "Personas",
-    nav: { research: "Buscar Tema", factChecker: "Verificar Hechos", policy: "Ver Futuro", finance: "Seguir Dinero", models: "Herramientas", profile: "Mis Datos", about: "Nuestra Historia" },
+    nav: { research: "Buscar Tema", factChecker: "Verificar Hechos", policy: "Ver Futuro", finance: "Seguir Dinero", models: "Herramientas", local: "Motor Local", profile: "Mis Datos", about: "Nuestra Historia" },
     setup: { language: "Idioma", engine: "Inicio", security: "Privacidad", title1: "Elige tu idioma", desc1: "Escoge cómo quieres leer y hablar.", title2: "Elige tu ayudante", desc2: "Selecciona la herramienta que prefieras.", continue: "Siguiente", linkTitle: "Conectar", back: "Atrás", filamentTitle: "Seguridad", filamentDesc: "Tus llaves se quedan en tu dispositivo.", apiKeyLabel: "Tu llave secreta", activate: "Empezar", geminiConfig: "Gemini ya está listo." },
     guide: {
       dashboard: {
@@ -427,7 +428,7 @@ export const translations: Record<LanguageCode, TranslationSet> = {
     explore: "Commencer", 
     manifesto: "Notre Histoire", 
     activeSeekers: "Utilisateurs", 
-    nav: { research: "Recherche", factChecker: "Vérification", policy: "Futur", finance: "Argent", models: "Outils", profile: "Profil", about: "Histoire" }, 
+    nav: { research: "Recherche", factChecker: "Vérification", policy: "Futur", finance: "Argent", models: "Outils", local: "Moteur Local", profile: "Profil", about: "Histoire" }, 
     setup: { language: "Langue", engine: "Démarrage", security: "Confidentialité", title1: "Votre langue", desc1: "Choisissez comment vous lirez.", title2: "Votre aide", desc2: "Choisissez votre outil.", continue: "Suivant", linkTitle: "Connecter", back: "Retour", filamentTitle: "Sécurité", filamentDesc: "Vos clés restent ici.", apiKeyLabel: "Votre clé", activate: "Lancer", geminiConfig: "Gemini est prêt." }, 
     guide: {
       dashboard: {

@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    return res.status(200).send('Messenger is active. Factium AI Proxy v1.4.6 OK.');
+    return res.status(200).send('Messenger is active. Factium AI Proxy v1.4.8 OK.');
   }
 
   if (req.method !== 'POST') {
@@ -29,7 +29,15 @@ export default async function handler(req, res) {
 
     // ── GEMINI ────────────────────────────────────────────────────────────────
     if (provider === 'gemini' || provider === 'google') {
-      const modelName = model || 'gemini-1.5-flash';
+      // Mapping for retired or renamed models
+      const modelMapping = {
+        'gemini-1.5-flash': 'gemini-2.0-flash',
+        'gemini-1.5-pro': 'gemini-2.0-flash',
+        'gemini-3-pro-preview': 'gemini-2.0-flash',
+        'factium-native': 'gemini-2.0-flash'
+      };
+
+      const modelName = modelMapping[model] || model || 'gemini-2.0-flash';
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
       // NOTE: Google REST API requires camelCase field names

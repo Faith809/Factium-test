@@ -8,6 +8,7 @@ import UserProfileForm from './components/UserProfileForm';
 import AboutPage from './components/AboutPage';
 import Dashboard from './components/Dashboard';
 import MyAIModels from './components/MyAIModels';
+import BrainSelector from './components/BrainSelector';
 import SetupWizard from './components/SetupWizard';
 import { IconSun, IconMoon, IconZap, Logo, IconMenu, IconX } from './components/Icons';
 import { AppView, UserProfile, LanguageCode, AppearanceSettings } from './types';
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   const [isAppearanceStationOpen, setAppearanceStationOpen] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [language, setLanguage] = useState<LanguageCode>('en');
+  const [localStatus, setLocalStatus] = useState<'online' | 'offline'>('offline');
   const [isQuickAccessEnabled, setQuickAccessEnabled] = useState(false);
   const [tourStarted, setTourStarted] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
@@ -44,10 +46,15 @@ const App: React.FC = () => {
     if (!vault) {
       setNeedsSetup(true);
     } else {
-      const parsed = JSON.parse(vault);
-      const activeProvider = parsed.activeProvider;
-      const key = parsed.keys[activeProvider];
-      if (!key) setNeedsSetup(true);
+      try {
+        const parsed = JSON.parse(vault);
+        const activeProvider = parsed.activeProvider;
+        const key = parsed.keys[activeProvider];
+        // Ensure key exists for the active provider, otherwise force setup
+        if (!key) setNeedsSetup(true);
+      } catch (e) {
+        setNeedsSetup(true);
+      }
     }
 
     const saved = localStorage.getItem('factium_profile');
@@ -58,6 +65,19 @@ const App: React.FC = () => {
     if (savedLang) setLanguage(savedLang);
     const savedQA = localStorage.getItem('factium_qa_enabled');
     if (savedQA) setQuickAccessEnabled(JSON.parse(savedQA));
+
+    // Monitor Local Engine
+    const checkLocal = async () => {
+      try {
+        const res = await fetch('http://localhost:11434/api/tags');
+        setLocalStatus(res.ok ? 'online' : 'offline');
+      } catch (e) {
+        setLocalStatus('offline');
+      }
+    };
+    checkLocal();
+    const interval = setInterval(checkLocal, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -214,12 +234,23 @@ const App: React.FC = () => {
           <div id="nav-fact-checker"><NavItem view={AppView.FACT_CHECKER} label={t.nav.factChecker} /></div>
           <div id="nav-policy"><NavItem view={AppView.POLICY_SIMULATOR} label={t.nav.policy} /></div>
           <div id="nav-finance"><NavItem view={AppView.FINANCE_TRACKER} label={t.nav.finance} /></div>
+          <div id="nav-local"><NavItem view={AppView.LOCAL_ENGINE} label={t.nav.local} /></div>
           <div id="nav-models"><NavItem view={AppView.MY_MODELS} label={t.nav.models} /></div>
           <div className="h-px bg-border my-6"></div>
           <div id="nav-about"><NavItem view={AppView.ABOUT} label={t.nav.about} /></div>
           <div id="nav-profile"><NavItem view={AppView.PROFILE} label={t.nav.profile} /></div>
           
-          <div className="pt-6">
+          <div className="pt-6 space-y-3">
+            <div className={`p-4 rounded-2xl border transition-all flex items-center justify-between ${localStatus === 'online' ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+               <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${localStatus === 'online' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse' : 'bg-red-500 opacity-50'}`} />
+                  <span className={`text-[8px] font-black uppercase tracking-widest ${localStatus === 'online' ? 'text-green-500' : 'text-red-500/70'}`}>
+                    Local: {localStatus === 'online' ? 'Connected' : 'Offline'}
+                  </span>
+               </div>
+               <button onClick={() => navigateTo(AppView.LOCAL_ENGINE)} className="text-[10px] text-text-muted hover:text-primary transition-colors font-mono font-bold">SET</button>
+            </div>
+
             <button 
               id="recalibrate-btn"
               onClick={() => setNeedsSetup(true)}
@@ -301,6 +332,12 @@ const App: React.FC = () => {
             {currentView === AppView.MY_MODELS && (
               <ErrorBoundary>
                 <MyAIModels onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => handleStartTour('models')} language={language} />
+              </ErrorBoundary>
+            )}
+
+            {currentView === AppView.LOCAL_ENGINE && (
+              <ErrorBoundary>
+                <BrainSelector onBack={goBack} onHome={() => setCurrentView(AppView.DASHBOARD)} onGuide={() => {}} language={language} />
               </ErrorBoundary>
             )}
 

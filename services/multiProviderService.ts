@@ -1,6 +1,7 @@
 import { ProviderConfig, AIProviderId, DetailedResearchResponse, ResearchMode, LanguageCode, AIModelId } from "../types";
 import { languageNames } from "./i18n";
 import { safeParseJson } from "./jsonUtils";
+import { callLocalAI } from "./localAIProvider";
 
 const getVault = (): ProviderConfig => {
   try {
@@ -79,6 +80,16 @@ const safeFetch = async (url: string, options: any) => {
     if (!res.ok) {
       const errorText = await res.text().catch(() => 'No extra error info');
       console.error(`[SafeFetch] Standard Fetch failed: ${res.status}`, errorText);
+      
+      if (res.status === 429) {
+        return {
+          error: true,
+          type: 'RATE_LIMIT',
+          status: 429,
+          message: 'QUOTA_EXCEEDED: Your Gemini API key has reached its rate limit. Please wait a few minutes or switch to a different key in "MY DETAILS".'
+        };
+      }
+
       return {
         error: true,
         type: 'NETWORK',
@@ -109,7 +120,8 @@ export const providers = [
   { id: 'google', name: 'Google Gemini', isFreeTierAvailable: true, keyUrl: 'https://aistudio.google.com/app/apikey', description: 'Quick answers that are easy to understand.' },
   { id: 'openai', name: 'OpenAI GPT-4o', isFreeTierAvailable: false, keyUrl: 'https://platform.openai.com/api-keys', description: 'Smart and clear thinking.' },
   { id: 'anthropic', name: 'Claude 3.5', isFreeTierAvailable: false, keyUrl: 'https://console.anthropic.com/', description: 'Kind and helpful analysis.' },
-  { id: 'huggingface', name: 'Hugging Face', isFreeTierAvailable: true, keyUrl: 'https://huggingface.co/settings/tokens', description: 'A large collection of open tools.' }
+  { id: 'huggingface', name: 'Hugging Face', isFreeTierAvailable: true, keyUrl: 'https://huggingface.co/settings/tokens', description: 'A large collection of open tools.' },
+  { id: 'local', name: 'Local Engine', isFreeTierAvailable: true, keyUrl: 'http://localhost:11434', description: 'Run private AI models on your own machine.' }
 ];
 
 export const getAllProviders = () => {
@@ -125,24 +137,37 @@ export const getAllProviders = () => {
 };
 
 const RAW_PROXY_URL = import.meta.env.VITE_VERCEL_PROXY_URL || '';
+// Fallback to current origin if not provided, assuming the proxy is hosted on the same server
+const FALLBACK_PROXY_URL = typeof window !== 'undefined' ? `${window.location.origin}/api/proxy` : '';
+
 // Sanitize URL: Remove trailing slash and append /api/proxy if it's missing the path
-const VERCEL_PROXY_URL = RAW_PROXY_URL 
+const VERCEL_PROXY_URL = (RAW_PROXY_URL && !RAW_PROXY_URL.includes('YOUR_VERCEL_URL_HERE'))
   ? (RAW_PROXY_URL.replace(/\/$/, "").endsWith('/api/proxy') 
       ? RAW_PROXY_URL.replace(/\/$/, "") 
       : `${RAW_PROXY_URL.replace(/\/$/, "")}/api/proxy`)
-  : '';
+  : FALLBACK_PROXY_URL;
 
 export const callAI = async (prompt: string, options: { json?: boolean, system?: string, modelId?: AIModelId, attachments?: any[] } = {}) => {
-  if (!VERCEL_PROXY_URL || VERCEL_PROXY_URL.includes('YOUR_VERCEL_URL_HERE')) {
-    console.warn('[CallAI] Proxy URL is not configured. Falling back to direct mode for preview safety.');
-    // In preview mode or if no proxy, we should inform the user
-    alert('CRITICAL: Proxy URL is not set. Go to Settings > Environment Variables in AI Studio and set VITE_VERCEL_PROXY_URL to your Vercel address.');
+  const vault = getVault();
+  const providerId = options.modelId || vault.activeProvider;
+
+  // Handle Local Provider Routing
+  if (providerId === 'local') {
+    const localModel = (vault as any).localModel || 'llama3:8b';
+    return await callLocalAI(prompt, { 
+      system: options.system, 
+      json: options.json, 
+      modelId: localModel, 
+      attachments: options.attachments 
+    });
+  }
+
+  if (!VERCEL_PROXY_URL) {
+    console.error('[CallAI] Proxy URL is not configured and fallback failed.');
     throw new Error('PROXY_URL_MISSING');
   }
 
   console.log('Sending request to proxy:', VERCEL_PROXY_URL);
-  const vault = getVault();
-  const providerId = options.modelId || vault.activeProvider;
   const lang = getActiveLanguage();
   const langName = languageNames[lang];
   
@@ -151,12 +176,12 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
   const finalSystem = (options.system || "You are a helpful assistant.") + toneInstruction + (lang !== 'en' ? ` Provide all text output exclusively in ${langName}.` : "");
 
   let provider = 'gemini';
-  let model = 'gemini-1.5-flash';
+  let model = 'gemini-2.0-flash';
   let apiKey = '';
 
-  if (providerId === 'google' || providerId === 'factium-native' || providerId === 'gemini-1.5-flash') {
+  if (providerId === 'google' || providerId === 'factium-native' || providerId === 'gemini-1.5-flash' || providerId === 'deepseek-r1' || providerId === 'nolimit-gpt-free' || providerId === 'llama-3-unfiltered') {
     provider = 'gemini';
-    model = 'gemini-1.5-flash';
+    model = 'gemini-2.0-flash';
     apiKey = vault.keys['google'] || vault.keys['factium-native'] || vault.keys['gemini-1.5-flash'] || '';
   } else if (providerId === 'openai' || providerId === 'gpt-4o') {
     provider = 'openai';
