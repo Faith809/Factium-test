@@ -146,6 +146,12 @@ export interface AppearanceSettings {
   isDark: boolean;
 }
 
+export interface SearchSettings {
+  isEnabled: boolean;
+  maxResults: number;
+  engine: 'duckduckgo' | 'google' | 'bing';
+}
+
 declare global {
   interface Window {
     BACKEND_PORT?: number;

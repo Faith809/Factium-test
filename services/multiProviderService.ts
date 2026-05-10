@@ -154,11 +154,13 @@ export const callAI = async (prompt: string, options: { json?: boolean, system?:
   // Handle Local Provider Routing
   if (providerId === 'local') {
     const localModel = (vault as any).localModel || 'llama3:8b';
+    const searchEnabled = (vault as any).localSearchEnabled !== false; // Default to true
     return await callLocalAI(prompt, { 
       system: options.system, 
       json: options.json, 
       modelId: localModel, 
-      attachments: options.attachments 
+      attachments: options.attachments,
+      searchEnabled: searchEnabled
     });
   }
 
